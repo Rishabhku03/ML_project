@@ -38,6 +38,17 @@ services:
       mc mb --ignore-existing myminio/zulip-raw-messages
       mc mb --ignore-existing myminio/zulip-training-data
 
+  adminer:
+    image: adminer:latest
+    container_name: adminer
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5050:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+
   api:
     build:
       context: ..
