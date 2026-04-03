@@ -6,7 +6,7 @@ Four-phase buildout of the ChatSentry data pipeline on a single KVM@TACC VM. Pha
 
 ## Phases
 
-- [x] **Phase 1: Infrastructure & Ingestion** - Docker Compose stack running, CSV ingested, synthetic data generated and uploaded to MinIO (completed 2026-04-03)
+- [~] **Phase 1: Infrastructure & Ingestion** - Docker Compose stack running, CSV ingested, synthetic data generated and uploaded to MinIO — 4 gaps need closure
 - [ ] **Phase 2: Real-time Processing** - Messages processed through shared text preprocessing module in real-time
 - [ ] **Phase 3: Batch Pipeline** - Versioned training datasets compiled from production data without leakage
 - [ ] **Phase 4: Design Doc & Config** - Pipeline documented with schemas/diagrams and configurable via YAML
@@ -23,13 +23,14 @@ Four-phase buildout of the ChatSentry data pipeline on a single KVM@TACC VM. Pha
   3. MinIO buckets `zulip-raw-messages` and `zulip-training-data` are created and browsable at :9001
   4. Ingestion script reads `combined_dataset.csv` (~1.58M rows, chunked) and uploads to MinIO
   5. Synthetic data generated via HuggingFace API with source tagging (real vs synthetic) and uploaded to MinIO
-**Plans**: 4 plans
+**Plans**: 5 plans
 
 Plans:
 - [ ] 01-01: Docker Compose & service scaffolding (PostgreSQL, MinIO, FastAPI)
 - [x] 01-02: PostgreSQL schema init & MinIO bucket creation
 - [x] 01-03: CSV ingestion script (chunked reading, MinIO upload)
 - [ ] 01-04: Synthetic data generator (HuggingFace API, source tagging)
+- [ ] 01-05: Gap closure — HF_TOKEN, source columns, lint fixes
 
 ### Phase 2: Real-time Processing
 **Goal**: Messages processed in real-time with clean, standardized text via a shared preprocessing module
@@ -83,7 +84,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Infrastructure & Ingestion | 4/4 | Complete   | 2026-04-03 |
+| 1. Infrastructure & Ingestion | 4/5 | Gap closure | - |
 | 2. Real-time Processing | 0/3 | Not started | - |
 | 3. Batch Pipeline | 0/4 | Not started | - |
 | 4. Design Doc & Config | 0/2 | Not started | - |
