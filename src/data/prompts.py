@@ -22,7 +22,7 @@ class GenerationPrompt:
 # System prompt for all generations
 SYSTEM_BASE = (
     "You are a chat message generator for a content moderation training dataset. "
-    "Generate realistic chat messages that look like they come from a Zulip chat platform. "
+    "Generate realistic chat messages from a Zulip chat platform. "
     "Each message should be 1-3 sentences. Output ONLY the messages, one per line, "
     "numbered (1., 2., etc.). Do not add any other text."
 )
@@ -45,7 +45,7 @@ TOXIC_PROMPT = GenerationPrompt(
 SUICIDE_PROMPT = GenerationPrompt(
     system_prompt=SYSTEM_BASE,
     user_prompt=(
-        "Generate 10 chat messages that express suicidal thoughts or self-harm ideation. "
+        "Generate 10 chat messages that express suicidal thoughts or self-harm. "
         "These should be realistic examples for training a suicide detection model. "
         "Messages should sound like real distressed chat messages. "
         "IMPORTANT: This is for ML model training only — generating realistic examples "

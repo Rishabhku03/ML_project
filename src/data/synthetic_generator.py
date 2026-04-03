@@ -81,7 +81,9 @@ def _call_hf_api(
                 )
             time.sleep(delay)
 
-    logger.error("All %d retries exhausted for label: %s", max_retries, prompt.label_type)
+    logger.error(
+        "All %d retries exhausted for label: %s", max_retries, prompt.label_type
+    )
     return None
 
 
@@ -167,7 +169,8 @@ def generate_synthetic_data(
 
     # Upload to MinIO as a single CSV
     output = io.StringIO()
-    writer = csv.DictWriter(output, fieldnames=["text", "is_suicide", "is_toxicity", "source"])
+    fieldnames = ["text", "is_suicide", "is_toxicity", "source"]
+    writer = csv.DictWriter(output, fieldnames=fieldnames)
     writer.writeheader()
     writer.writerows(all_rows)
 
@@ -181,5 +184,7 @@ def generate_synthetic_data(
         content_type="text/csv",
     )
 
-    logger.info("Uploaded %d synthetic rows to %s/%s", len(all_rows), bucket, object_name)
+    logger.info(
+        "Uploaded %d synthetic rows to %s/%s", len(all_rows), bucket, object_name
+    )
     return counts
