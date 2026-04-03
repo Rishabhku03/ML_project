@@ -36,6 +36,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **BATCH-02**: Temporal data leakage prevention (WHERE created_at < decided_at on all training queries)
 - [ ] **BATCH-03**: Versioned snapshots in MinIO (immutable, timestamp-tagged: v20260403-142301/)
 - [ ] **BATCH-04**: Post-submission metadata stripped before training data export
+- [ ] **BATCH-05**: Dataset split into train/test/validation sets (stratified by is_suicide and is_toxicity labels)
 
 ### Design & Config
 
@@ -95,12 +96,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BATCH-02 | Phase 3 | Pending |
 | BATCH-03 | Phase 3 | Pending |
 | BATCH-04 | Phase 3 | Pending |
+| BATCH-05 | Phase 3 | Pending |
 | DESIGN-01 | Phase 4 | Pending |
 | CONFIG-01 | Phase 4 | Pending |
 
 **Coverage:**
-- v1 requirements: 20 total
-- Mapped to phases: 20
+- v1 requirements: 21 total
+- Mapped to phases: 21
 - Unmapped: 0 ✓
 
 ---
