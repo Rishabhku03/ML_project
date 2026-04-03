@@ -27,7 +27,7 @@ Four-phase buildout of the ChatSentry data pipeline on a single KVM@TACC VM. Pha
 
 Plans:
 - [ ] 01-01: Docker Compose & service scaffolding (PostgreSQL, MinIO, FastAPI)
-- [ ] 01-02: PostgreSQL schema init & MinIO bucket creation
+- [x] 01-02: PostgreSQL schema init & MinIO bucket creation
 - [ ] 01-03: CSV ingestion script (chunked reading, MinIO upload)
 - [ ] 01-04: Synthetic data generator (HuggingFace API, source tagging)
 

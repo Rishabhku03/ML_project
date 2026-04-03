@@ -9,8 +9,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Infrastructure
 
-- [ ] **INFRA-01**: PostgreSQL schema with tables: users, messages, flags, moderation (UUIDs, source tracking, timestamps)
-- [ ] **INFRA-02**: MinIO buckets created: zulip-raw-messages, zulip-training-data (browsable at :9001)
+- [x] **INFRA-01**: PostgreSQL schema with tables: users, messages, flags, moderation (UUIDs, source tracking, timestamps)
+- [x] **INFRA-02**: MinIO buckets created: zulip-raw-messages, zulip-training-data (browsable at :9001)
 - [ ] **INFRA-03**: FastAPI dummy endpoints: POST /messages, POST /flags (accepting synthetic traffic)
 - [ ] **INFRA-04**: Docker Compose file orchestrating all services on single KVM@TACC VM
 
@@ -78,8 +78,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-01 | Phase 1 | Pending |
-| INFRA-02 | Phase 1 | Pending |
+| INFRA-01 | Phase 1 | Complete |
+| INFRA-02 | Phase 1 | Complete |
 | INFRA-03 | Phase 1 | Pending |
 | INFRA-04 | Phase 1 | Pending |
 | INGEST-01 | Phase 1 | Pending |
