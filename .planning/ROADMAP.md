@@ -30,7 +30,7 @@ Plans:
 - [x] 01-02: PostgreSQL schema init & MinIO bucket creation
 - [x] 01-03: CSV ingestion script (chunked reading, MinIO upload)
 - [ ] 01-04: Synthetic data generator (HuggingFace API, source tagging)
-- [ ] 01-05: Gap closure — HF_TOKEN, source columns, lint fixes
+- [x] 01-05: Gap closure — HF_TOKEN, source columns, lint fixes
 
 ### Phase 2: Real-time Processing
 **Goal**: Messages processed in real-time with clean, standardized text via a shared preprocessing module
