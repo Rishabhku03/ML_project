@@ -12,7 +12,13 @@ Deliver a self-contained, reproducible data pipeline with versioned training dat
 
 ### Validated
 
-(None yet — ship to validate)
+- **INFRA-01**: PostgreSQL schema with tables — validated in Phase 01 (gap closure fixed source columns on all 4 tables)
+- **INFRA-02**: MinIO buckets created — validated in Phase 01
+- **INFRA-03**: FastAPI dummy endpoints POST /messages, POST /flags — validated in Phase 01
+- **INFRA-04**: Docker Compose orchestration — validated in Phase 01 (gap closure added HF_TOKEN)
+- **INGEST-01**: CSV ingestion script — validated in Phase 01
+- **INGEST-02**: Synthetic data generation via HuggingFace API — validated in Phase 01
+- **INGEST-03**: Data uploaded to MinIO with source tagging — validated in Phase 01
 
 ### Active
 
@@ -53,11 +59,14 @@ Deliver a self-contained, reproducible data pipeline with versioned training dat
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| KVM@TACC (no GPU) | Standard VM site for data pipeline; GPU not needed for data work | — Pending |
-| HuggingFace API for synthetic data | No local GPU; external API enables LLM text generation | — Pending |
+| KVM@TACC (no GPU) | Standard VM site for data pipeline; GPU not needed for data work | Validated Phase 01 |
+| HuggingFace API for synthetic data | No local GPU; external API enables LLM text generation | Validated Phase 01 |
 | Separate VMs per team member | Each specialist owns their infrastructure independently | — Pending |
-| Docker Compose for orchestration | Matches course lab patterns (data-platform-chi) | — Pending |
-| Dummy FastAPI endpoints | Simulate Zulip without real chat platform dependency | — Pending |
+| Docker Compose for orchestration | Matches course lab patterns (data-platform-chi) | Validated Phase 01 |
+| Dummy FastAPI endpoints | Simulate Zulip without real chat platform dependency | Validated Phase 01 |
+| Mistral-7B-Instruct via featherless-ai | Free-tier HF Inference API provider for synthetic generation | Settled Phase 01 |
+| 50K-row CSV chunks to MinIO (no Parquet) | Simplicity; course requirement for object storage ingestion | Settled Phase 01 |
+| Prompt-guided labeling (D-13) | Labels from prompt instruction, not post-hoc classification | Settled Phase 01 |
 
 ## Evolution
 
@@ -77,4 +86,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-03 after initialization*
+*Last updated: 2026-04-03 after Phase 01 completion (infrastructure + ingestion + gap closure)*
