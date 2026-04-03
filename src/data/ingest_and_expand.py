@@ -78,7 +78,10 @@ def ingest_csv(csv_path: str = CSV_PATH, bucket: str = config.BUCKET_RAW) -> int
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(message)s",
+    )
     csv_file = sys.argv[1] if len(sys.argv) > 1 else CSV_PATH
     count = ingest_csv(csv_file)
     logging.getLogger(__name__).info("Done: %d chunks uploaded", count)
