@@ -23,7 +23,7 @@ Four-phase buildout of the ChatSentry data pipeline on a single KVM@TACC VM. Pha
   3. MinIO buckets `zulip-raw-messages` and `zulip-training-data` are created and browsable at :9001
   4. Ingestion script reads `combined_dataset.csv` (~1.58M rows, chunked) and uploads to MinIO
   5. Synthetic data generated via HuggingFace API with source tagging (real vs synthetic) and uploaded to MinIO
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
 - [ ] 01-01: Docker Compose & service scaffolding (PostgreSQL, MinIO, FastAPI)
