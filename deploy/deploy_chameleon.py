@@ -81,7 +81,7 @@ s.refresh()
 
 nova = chi.nova()
 srv = nova.servers.find(name=f"node-proj09-{username}")
-floating_ip = srv.access_ipv4
+floating_ip = list(srv.addresses.values())[0][-1]  # last IP in first network = floating
 print(f"  Floating IP: {floating_ip}")
 
 # ──────────────────────────────────────────────────────────────
