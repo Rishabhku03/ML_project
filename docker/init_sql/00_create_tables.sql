@@ -43,6 +43,8 @@ CREATE TABLE IF NOT EXISTS flags (
     flagged_by UUID REFERENCES users(id),
     reason TEXT,
     is_verified BOOLEAN DEFAULT FALSE,
+    source VARCHAR(32) NOT NULL DEFAULT 'real'
+        CHECK (source IN ('real', 'synthetic_hf')),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -53,5 +55,7 @@ CREATE TABLE IF NOT EXISTS moderation (
     action VARCHAR(50) NOT NULL,
     confidence FLOAT,
     model_version VARCHAR(100),
+    source VARCHAR(32) NOT NULL DEFAULT 'real'
+        CHECK (source IN ('real', 'synthetic_hf')),
     decided_at TIMESTAMPTZ DEFAULT NOW()
 );
