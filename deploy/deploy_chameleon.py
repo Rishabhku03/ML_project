@@ -48,7 +48,7 @@ username = os.getenv("USER")
 print(f"\n[2/10] Creating lease for {FLAVOR} ({LEASE_DURATION_HOURS}h)...")
 
 l = lease.Lease(
-    f"lease-chatsentry-{username}",
+    f"proj09_Data",
     duration=datetime.timedelta(hours=LEASE_DURATION_HOURS),
 )
 l.add_flavor_reservation(id=chi.server.get_flavor_id(FLAVOR), amount=1)
@@ -65,7 +65,7 @@ time.sleep(10)
 print(f"\n[3/10] Launching VM with {IMAGE}...")
 
 s = server.Server(
-    f"node-chatsentry-{username}",
+    f"node-proj09-{username}",
     image_name=IMAGE,
     flavor_name=l.get_reserved_flavors()[0].name,
 )

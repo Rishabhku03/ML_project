@@ -14,8 +14,8 @@ context.choose_project()
 context.choose_site(default="KVM@TACC")
 username = os.getenv("USER")
 
-server_name = f"node-chatsentry-{username}"
-lease_name = f"lease-chatsentry-{username}"
+server_name = f"node-proj09-{username}"
+lease_name = f"proj09_Data"
 
 print(f"Deleting server: {server_name}")
 try:
