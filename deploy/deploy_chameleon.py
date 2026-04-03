@@ -79,13 +79,9 @@ print("\n[4/10] Associating floating IP...")
 s.associate_floating_ip()
 s.refresh()
 
-floating_ip = None
-for addr_list in s._server.addresses.values():
-    for addr in addr_list:
-        if addr.get("OS-EXT-IPS:type") == "floating":
-            floating_ip = addr["addr"]
-            break
-
+nova = chi.nova()
+srv = nova.servers.find(name=f"node-proj09-{username}")
+floating_ip = srv.access_ipv4
 print(f"  Floating IP: {floating_ip}")
 
 # ──────────────────────────────────────────────────────────────
