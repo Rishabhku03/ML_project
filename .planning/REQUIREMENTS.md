@@ -16,9 +16,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Ingestion
 
-- [ ] **INGEST-01**: Ingestion script reads combined_dataset.csv (1.58M rows, chunked to avoid OOM)
-- [ ] **INGEST-02**: Synthetic data generation via HuggingFace API (toxic + benign Zulip-style messages)
-- [ ] **INGEST-03**: Ingested + synthetic data uploaded to MinIO with source tagging (real vs synthetic)
+- [x] **INGEST-01**: Ingestion script reads combined_dataset.csv (1.58M rows, chunked to avoid OOM)
+- [x] **INGEST-02**: Synthetic data generation via HuggingFace API (toxic + benign Zulip-style messages)
+- [x] **INGEST-03**: Ingested + synthetic data uploaded to MinIO with source tagging (real vs synthetic)
 - [ ] **INGEST-04**: Data generator sends synthetic HTTP traffic to FastAPI endpoints
 
 ### Online Processing
@@ -82,9 +82,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INFRA-02 | Phase 1 | Complete |
 | INFRA-03 | Phase 1 | Pending |
 | INFRA-04 | Phase 1 | Pending |
-| INGEST-01 | Phase 1 | Pending |
-| INGEST-02 | Phase 1 | Pending |
-| INGEST-03 | Phase 1 | Pending |
+| INGEST-01 | Phase 1 | Complete |
+| INGEST-02 | Phase 1 | Complete |
+| INGEST-03 | Phase 1 | Complete |
 | INGEST-04 | Phase 2 | Pending |
 | ONLINE-01 | Phase 2 | Pending |
 | ONLINE-02 | Phase 2 | Pending |

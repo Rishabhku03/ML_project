@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed 01-03-PLAN.md (CSV Ingestion Script)
-last_updated: "2026-04-03T21:20:11.291Z"
+stopped_at: Completed 01-04-PLAN.md (Synthetic Data Generator)
+last_updated: "2026-04-03T21:20:19.526Z"
 last_activity: 2026-04-03
 progress:
   total_phases: 4
@@ -68,6 +68,8 @@ Recent decisions affecting current work:
 - [Phase 01-infrastructure-ingestion]: Used frozen dataclass for Config (immutable, env-var-driven with sensible defaults)
 - [Phase 01-infrastructure-ingestion]: Created full PostgreSQL schema with 4 tables, UUIDs, toxicity booleans, GIN index, and source tracking per D-01 through D-14
 - [Phase 01-infrastructure-ingestion]: Actual CSV has 391,645 rows (not 1.58M) due to embedded newlines in text column — wc -l overcounts. Updated test assertions to match reality.
+- [Phase 01-infrastructure-ingestion]: Used frozen dataclass GenerationPrompt to encapsulate system/user prompts with label metadata
+- [Phase 01-infrastructure-ingestion]: Label distribution rebalanced to 30/30/40 (toxic/suicide/benign) to oversample minority classes per D-11
 
 ### Pending Todos
 
@@ -79,6 +81,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-03T21:20:02.153Z
-Stopped at: Completed 01-03-PLAN.md (CSV Ingestion Script)
+Last session: 2026-04-03T21:20:19.522Z
+Stopped at: Completed 01-04-PLAN.md (Synthetic Data Generator)
 Resume file: None

@@ -6,7 +6,7 @@ Four-phase buildout of the ChatSentry data pipeline on a single KVM@TACC VM. Pha
 
 ## Phases
 
-- [ ] **Phase 1: Infrastructure & Ingestion** - Docker Compose stack running, CSV ingested, synthetic data generated and uploaded to MinIO
+- [x] **Phase 1: Infrastructure & Ingestion** - Docker Compose stack running, CSV ingested, synthetic data generated and uploaded to MinIO (completed 2026-04-03)
 - [ ] **Phase 2: Real-time Processing** - Messages processed through shared text preprocessing module in real-time
 - [ ] **Phase 3: Batch Pipeline** - Versioned training datasets compiled from production data without leakage
 - [ ] **Phase 4: Design Doc & Config** - Pipeline documented with schemas/diagrams and configurable via YAML
@@ -28,7 +28,7 @@ Four-phase buildout of the ChatSentry data pipeline on a single KVM@TACC VM. Pha
 Plans:
 - [ ] 01-01: Docker Compose & service scaffolding (PostgreSQL, MinIO, FastAPI)
 - [x] 01-02: PostgreSQL schema init & MinIO bucket creation
-- [ ] 01-03: CSV ingestion script (chunked reading, MinIO upload)
+- [x] 01-03: CSV ingestion script (chunked reading, MinIO upload)
 - [ ] 01-04: Synthetic data generator (HuggingFace API, source tagging)
 
 ### Phase 2: Real-time Processing
@@ -83,7 +83,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Infrastructure & Ingestion | 0/4 | Not started | - |
+| 1. Infrastructure & Ingestion | 4/4 | Complete   | 2026-04-03 |
 | 2. Real-time Processing | 0/3 | Not started | - |
 | 3. Batch Pipeline | 0/4 | Not started | - |
 | 4. Design Doc & Config | 0/2 | Not started | - |
