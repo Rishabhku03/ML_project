@@ -59,13 +59,10 @@ Plans:
   3. Immutable versioned snapshots stored in MinIO with timestamp tags (e.g., `v20260403-142301/`)
   4. Post-submission metadata is stripped before training data export
   5. Dataset split into train/test/validation sets, stratified by is_suicide and is_toxicity labels
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 03-01: Batch compilation script (PostgreSQL query → training dataset)
-- [ ] 03-02: Temporal leakage prevention & metadata stripping
-- [ ] 03-03: Stratified train/test/validation split
-- [ ] 03-04: Versioned snapshot upload to MinIO
+- [x] 03-01: Batch pipeline — compilation script, temporal leakage prevention, stratified split, versioned MinIO upload
 
 ### Phase 4: Design Doc & Config
 **Goal**: Pipeline documented with schemas/flow diagrams and configurable via YAML
@@ -86,5 +83,5 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Infrastructure & Ingestion | 4/5 | Gap closure | - |
 | 2. Real-time Processing | 0/3 | Planning complete | - |
-| 3. Batch Pipeline | 0/4 | Not started | - |
+| 3. Batch Pipeline | 0/1 | Planning complete | - |
 | 4. Design Doc & Config | 0/2 | Not started | - |
