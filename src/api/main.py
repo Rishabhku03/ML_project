@@ -39,7 +39,11 @@ async def text_cleaning_middleware(request, call_next):
         cleaned = dict(body)
 
         if request.url.path == "/messages":
-            raw_text = body.get("text", "")
+            raw_text = body.get("text", "").strip()
+            if not raw_text:
+                # Skip empty messages
+                request.state.cleaned_body = body  # type: ignore[attr-defined]
+                return await call_next(request)
             cleaned["raw_text"] = raw_text
             cleaned["cleaned_text"] = cleaner.clean(raw_text)
             _persist_message(cleaned)
