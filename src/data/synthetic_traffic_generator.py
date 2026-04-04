@@ -143,15 +143,22 @@ def _build_message_payload(csv_messages: list[str]) -> dict[str, Any]:
     }
 
 
-def _build_flag_payload() -> dict[str, Any]:
-    """Build a /flags payload with random data.
+def _build_flag_payload(posted_message_ids: list[str] | None = None) -> dict[str, Any]:
+    """Build a /flags payload using a real message ID if available.
+
+    Args:
+        posted_message_ids: List of message IDs from successful POST /messages calls.
 
     Returns:
         Payload dict matching FlagPayload schema.
     """
     reasons = ["spam", "harassment", "hate_speech", "self_harm", "other"]
+    if posted_message_ids:
+        message_id = random.choice(posted_message_ids)
+    else:
+        message_id = str(uuid.uuid4())
     return {
-        "message_id": str(uuid.uuid4()),
+        "message_id": message_id,
         "flagged_by": str(uuid.uuid4()),
         "reason": random.choice(reasons),
     }
@@ -195,6 +202,7 @@ async def run_traffic_generator(
         start_time = asyncio.get_event_loop().time()
         end_time = start_time + duration_seconds
         pending_tasks: list[asyncio.Task] = []
+        posted_message_ids: list[str] = []  # Track IDs for flag payloads
 
         while asyncio.get_event_loop().time() < end_time:
             dispatch_start = asyncio.get_event_loop().time()
@@ -214,13 +222,18 @@ async def run_traffic_generator(
 
                 pending_tasks.append(
                     asyncio.create_task(
-                        _dispatch_and_count(
-                            session, message_url, payload, "messages", counters
+                        _dispatch_and_track(
+                            session,
+                            message_url,
+                            payload,
+                            "messages",
+                            counters,
+                            posted_message_ids,
                         )
                     )
                 )
             else:
-                payload = _build_flag_payload()
+                payload = _build_flag_payload(posted_message_ids)
                 pending_tasks.append(
                     asyncio.create_task(
                         _dispatch_and_count(
@@ -279,6 +292,34 @@ async def _dispatch_and_count(
     result = await send_message(session, url, payload)
     if result is not None:
         counters[counter_key] += 1
+    else:
+        counters["errors"] += 1
+
+
+async def _dispatch_and_track(
+    session: aiohttp.ClientSession,
+    url: str,
+    payload: dict[str, Any],
+    counter_key: str,
+    counters: dict[str, int],
+    posted_message_ids: list[str],
+) -> None:
+    """Dispatch a message request, update counters, and track the returned ID.
+
+    Args:
+        session: aiohttp ClientSession.
+        url: Target URL.
+        payload: JSON payload.
+        counter_key: Key in counters to increment on success.
+        counters: Shared counter dict.
+        posted_message_ids: List to append successful message IDs to.
+    """
+    result = await send_message(session, url, payload)
+    if result is not None:
+        counters[counter_key] += 1
+        msg_id = result.get("message_id")
+        if msg_id:
+            posted_message_ids.append(msg_id)
     else:
         counters["errors"] += 1
 
