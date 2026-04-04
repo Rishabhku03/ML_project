@@ -42,12 +42,12 @@ Plans:
   3. PII (emails, phone numbers, usernames) is scrubbed from message text
   4. Unicode normalization fixes mojibake in scraped Reddit data via ftfy
   5. `text_cleaner.py` shared module exists and is used by both online and batch processing paths
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: Synthetic traffic generator hitting FastAPI endpoints
-- [ ] 02-02: text_cleaner.py shared module (markdown, emoji, URL, PII, Unicode)
-- [ ] 02-03: Online preprocessing integration with FastAPI message ingestion
+- [ ] 02-01: Synthetic traffic generator hitting FastAPI endpoints (INGEST-04)
+- [ ] 02-02: text_cleaner.py shared module — markdown, emoji, URL, PII, Unicode (ONLINE-01 through ONLINE-06)
+- [ ] 02-03: Online preprocessing integration — middleware, routes, migration (ONLINE-06)
 
 ### Phase 3: Batch Pipeline
 **Goal**: Versioned training datasets compiled from production data without data leakage
@@ -85,6 +85,6 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Infrastructure & Ingestion | 4/5 | Gap closure | - |
-| 2. Real-time Processing | 0/3 | Not started | - |
+| 2. Real-time Processing | 0/3 | Planning complete | - |
 | 3. Batch Pipeline | 0/4 | Not started | - |
 | 4. Design Doc & Config | 0/2 | Not started | - |
