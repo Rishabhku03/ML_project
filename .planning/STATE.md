@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Phase 2 context gathered
-last_updated: "2026-04-04T03:36:23.404Z"
-last_activity: 2026-04-03
+status: executing
+stopped_at: Phase 2 complete
+last_updated: "2026-04-04T12:25:00.000Z"
+last_activity: 2026-04-04
 progress:
   total_phases: 4
-  completed_phases: 1
-  total_plans: 5
-  completed_plans: 5
-  percent: 0
+  completed_phases: 2
+  total_plans: 8
+  completed_plans: 8
+  percent: 50
 ---
 
 # Project State
@@ -21,24 +21,24 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-03)
 
 **Core value:** Deliver a complete, reproducible data pipeline with versioned training data on Chameleon that the ML training team can consume — all demonstrated via 6 recorded demo videos.
-**Current focus:** Phase 01 — infrastructure-ingestion
+**Current focus:** Phase 3 — batch-pipeline (next)
 
 ## Current Position
 
-Phase: 2
+Phase: 3
 Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-04-03
+Status: Phase 2 complete — ready to plan Phase 3
+Last activity: 2026-04-04
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██████████░░] 50%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0
+- Total plans completed: 8
 - Average duration: -
-- Total execution time: 0 hours
+- Total execution time: - hours
 
 **By Phase:**
 
@@ -57,6 +57,9 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01-infrastructure-ingestion P03 | 3min | 2 tasks | 3 files |
 | Phase 01-infrastructure-ingestion P04 | 15min | 3 tasks | 3 files |
 | Phase 01-infrastructure-ingestion P05 | 5min | 3 tasks | 4 files |
+| Phase 02-real-time-processing P01 | - | 2 tasks | 2 files |
+| Phase 02-real-time-processing P02 | - | 2 tasks | 2 files |
+| Phase 02-real-time-processing P03 | - | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -71,6 +74,11 @@ Recent decisions affecting current work:
 - [Phase 01-infrastructure-ingestion]: Actual CSV has 391,645 rows (not 1.58M) due to embedded newlines in text column — wc -l overcounts. Updated test assertions to match reality.
 - [Phase 01-infrastructure-ingestion]: Used frozen dataclass GenerationPrompt to encapsulate system/user prompts with label metadata
 - [Phase 01-infrastructure-ingestion]: Label distribution rebalanced to 30/30/40 (toxic/suicide/benign) to oversample minority classes per D-11
+- [Phase 02-real-time-processing]: TextCleaner pipeline class with 5 configurable steps (ftfy → markdown → URLs → emoji → PII)
+- [Phase 02-real-time-processing]: Used ftfy 6.3.1, emoji 2.15.0, markdownify 1.2.2 as standard stack
+- [Phase 02-real-time-processing]: Two-phase markdown stripping (markdownify for HTML + regex for syntax markers)
+- [Phase 02-real-time-processing]: FastAPI BaseHTTPMiddleware for text cleaning with request.state pattern for route handler data passing
+- [Phase 02-real-time-processing]: async traffic generator using aiohttp at 15-20 RPS with mixed CSV/synthetic data sources
 
 ### Pending Todos
 
@@ -85,9 +93,10 @@ None yet.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260403-vj9 | Create 09_project folder with Phase 1 files (excluding tests and deployment) | 2026-04-04 | 9cce2e7 | [260403-vj9-create-09-project-folder-with-phase-1-fi](./quick/260403-vj9-create-09-project-folder-with-phase-1-fi/) |
+| 260404-f2x | Fix session race condition, minio-init entrypoint, .env token loading | 2026-04-04 | e817292 | [260404-f2x-fix-session-race-condition-minio-init-](./quick/260404-f2x-fix-session-race-condition-minio-init-/) |
 
 ## Session Continuity
 
-Last session: 2026-04-04T03:36:23.388Z
-Stopped at: Phase 2 context gathered
+Last session: 2026-04-04T00:25:00.000Z
+Stopped at: Phase 2 complete (54 tests passing)
 Resume file: .planning/phases/02-real-time-processing/02-CONTEXT.md
