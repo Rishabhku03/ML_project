@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS messages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id),
     text TEXT NOT NULL,
+    cleaned_text TEXT,
     -- Toxicity labels as individual boolean columns (D-02)
     toxic BOOLEAN DEFAULT FALSE,
     severe_toxic BOOLEAN DEFAULT FALSE,

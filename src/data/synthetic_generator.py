@@ -8,6 +8,7 @@ Per D-13: Labels assigned from prompt, not post-hoc classification.
 Per D-14: source = 'synthetic_hf'.
 Per D-15: Upload to zulip-raw-messages/synthetic/.
 """
+
 import csv
 import io
 import logging
@@ -188,3 +189,31 @@ def generate_synthetic_data(
         "Uploaded %d synthetic rows to %s/%s", len(all_rows), bucket, object_name
     )
     return counts
+
+
+if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
+
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Generate synthetic data for ChatSentry"
+    )
+    parser.add_argument(
+        "--count",
+        type=int,
+        default=TARGET_TOTAL,
+        help=f"Number of synthetic rows to generate (default: {TARGET_TOTAL})",
+    )
+    parser.add_argument(
+        "--bucket",
+        default=config.BUCKET_RAW,
+        help=f"MinIO bucket name (default: {config.BUCKET_RAW})",
+    )
+    args = parser.parse_args()
+
+    counts = generate_synthetic_data(target_total=args.count, bucket=args.bucket)
+    logger.info("Done: %s", counts)

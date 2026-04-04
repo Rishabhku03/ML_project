@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -12,6 +14,12 @@ class MessagePayload(BaseModel):
 class MessageResponse(BaseModel):
     status: str = "accepted"
     message_id: str
+    raw_text: Optional[str] = Field(
+        default=None, description="Original raw message text (D-13)"
+    )
+    cleaned_text: Optional[str] = Field(
+        default=None, description="Cleaned text after middleware processing (D-13)"
+    )
 
 
 class FlagPayload(BaseModel):
@@ -23,3 +31,6 @@ class FlagPayload(BaseModel):
 class FlagResponse(BaseModel):
     status: str = "accepted"
     flag_id: str
+    reason_cleaned: Optional[str] = Field(
+        default=None, description="Cleaned reason text after middleware processing"
+    )
