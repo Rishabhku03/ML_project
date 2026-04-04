@@ -107,7 +107,15 @@ Establish the foundational infrastructure for ChatSentry — a Docker Compose st
 
 ### 13. CSV not on VM
 **Error:** `FileNotFoundError: CSV file not found: combined_dataset.csv`
-**Fix:** The CSV must be transferred to the VM first via scp from the LOCAL machine: `scp -i ~/.ssh/id_rsa_chameleon combined_dataset.csv cc@<IP>:/home/cc/chatsentry/`
+**Fix:** The CSV must be transferred to the VM via scp from your **LOCAL terminal** (not from inside the SSH session):
+```bash
+# In your LOCAL terminal (not SSH):
+scp -i ~/.ssh/id_rsa_chameleon "/home/kukiku/Desktop/NYU courses/Semester 2/MLOps/Ml_Project/combined_dataset.csv" cc@129.114.27.58:/home/cc/chatsentry/
+```
+Then go back to your SSH session and run:
+```bash
+python3 -m src.data.ingest_and_expand combined_dataset.csv
+```
 
 ### 14. minio-init container not running
 **Error:** `Error response from daemon: container ... is not running`
