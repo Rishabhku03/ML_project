@@ -558,3 +558,170 @@ def ensure_cleaned_text(row):
 
 **Research date:** 2026-04-04
 **Valid until:** 2026-05-04 (30 days — stable stack, no fast-moving dependencies)
+
+---
+
+## Deep Dive: Implementation Patterns & Class Imbalance
+
+**Investigated:** 2026-04-04
+**Focus:** Two-step split validation, stratify edge cases, class imbalance handling, temporal leakage subtleties
+
+### Two-Step Stratified Split: Validation & Alternatives
+
+**Current approach (Pattern 3):** Two `train_test_split` calls — first 85/15, then 82.35/17.65 on the 85% portion.
+
+**Validation:** The approach is correct. Verified against scikit-learn 1.8.0 docs — `train_test_split` with `stratify` parameter delegates to `StratifiedShuffleSplit` internally. The two-call pattern is the standard community approach for 3-way splits.
+
+**Edge case: Second `test_size` calculation**
+The second call uses `test_size=0.15/0.85 ≈ 0.1765`, NOT `0.15`. Using `0.15` again would give:
+- Step 2 val: 15% × 85% = 12.75% of original (WRONG — should be 15%)
+- Total: 70% train + 12.75% val + 15% test = 97.75% (missing 2.25%!)
+
+**Alternative approaches considered:**
+
+| Approach | Step 1 | Step 2 | Complexity | Recommendation |
+|----------|--------|--------|------------|----------------|
+| **A: 70/30 then 50/50** (RECOMMENDED) | `test_size=0.30` | `test_size=0.50` on 30% | Simplest — both splits use clean ratios | **Use this** — eliminates the `0.15/0.85` calculation error risk |
+| B: 85/15 then 17.65/82.35 | `test_size=0.15` | `test_size=0.15/0.85` | Error-prone ratio | Current plan — works but fragile |
+| C: StratifiedShuffleSplit explicit | `n_test=58747` | `n_test=58747` on remainder | Verbose, explicit sizes | Overkill for this use case |
+
+**Recommended change:** Use Approach A — split 70/30 first, then split the 30% evenly (50/50) into val/test. Both ratios are clean integers, no division required, impossible to get wrong.
+
+```python
+# Recommended: 70/30 then 50/50
+train_df, temp_df = train_test_split(
+    df, test_size=0.30, stratify=df["label_combo"], random_state=42
+)
+val_df, test_df = train_test_split(
+    temp_df, test_size=0.50, stratify=temp_df["label_combo"], random_state=42
+)
+# Result: 70% train, 15% val, 15% test — same as current plan, cleaner math
+```
+
+**Confidence:** HIGH — verified against sklearn docs, simpler than current approach
+
+### Stratify Edge Cases & Safe Minimums
+
+**How `train_test_split(stratify=...)` works internally:**
+- Calls `StratifiedShuffleSplit` under the hood
+- For each class `k`, allocates `round(test_size × n_k)` samples to the test set
+- Error condition: if `round(test_size × n_k) < 1` for any class → `ValueError: The least populated class has only N member(s)`
+
+**Minimum class size formula:**
+- For `test_size=t`: minimum class size = `ceil(1/t)`
+- `test_size=0.15` → minimum 7 samples per class
+- `test_size=0.30` → minimum 4 samples per class
+- `test_size=0.50` → minimum 2 samples per class
+
+**Our dataset's class distribution (4-class combined label):**
+
+| Label | Description | Count | % | Safe for 0.30? | Safe for 0.50? |
+|-------|-------------|-------|---|----------------|----------------|
+| `1_0` | Suicide only | ~274,152 | 70.0% | ✅ (274152 >> 4) | ✅ |
+| `0_0` | Neither | ~101,827 | 26.0% | ✅ | ✅ |
+| `0_1` | Toxic only | ~15,666 | 4.0% | ✅ (15666 >> 4) | ✅ |
+| `1_1` | Both | 0 | 0.0% | ❌ EMPTY CLASS | ❌ EMPTY CLASS |
+
+**Critical finding:** The `1_1` (both=1) class has 0 samples (DATA_ISSUES.md Issue 2 — mutual exclusivity). Passing a 4-class label with an empty class to `stratify=` will raise `ValueError`.
+
+**Resolution — 3 options:**
+
+1. **Drop empty class before split (RECOMMENDED):** Filter out the `1_1` class (0 rows anyway), stratify on the 3 populated classes. Simple, correct, no edge cases.
+   ```python
+   # Filter to only populated classes
+   df = df[df["label_combo"] != "1_1"]
+   # Or: use only 3-class stratification directly
+   df["label_combo"] = df["is_suicide"].astype(str) + "_" + df["is_toxicity"].astype(str)
+   label_counts = df["label_combo"].value_counts()
+   populated_classes = label_counts[label_counts > 0].index
+   df = df[df["label_combo"].isin(populated_classes)]
+   ```
+
+2. **Check before split:** Count classes, if any has 0, remove from stratify label. More defensive but adds code.
+
+3. **Don't create `1_1` labels:** Since we know labels are mutually exclusive, construct the label to only produce 3 classes.
+
+**Recommendation:** Option 1 — filter empty classes before stratification. The planner should add a pre-split check that logs class distribution and drops empty classes.
+
+**Confidence:** HIGH — verified against sklearn source behavior, DATA_ISSUES.md confirms 0 rows for `1_1`
+
+### Class Imbalance: Data Pipeline vs Training Layer
+
+**Class imbalance ratios in our dataset:**
+- Toxicity: 23:1 ratio (4% toxic vs 96% non-toxic) — SEVERE
+- Suicide: 2.3:1 ratio (70% suicide vs 30% non-suicide) — MODERATE
+
+**Technique comparison:**
+
+| Technique | What It Does | Data Pipeline? | Why Not |
+|-----------|-------------|----------------|---------|
+| **SMOTE** | Generates synthetic minority samples via interpolation | ❌ NO | Requires feature vectors (embeddings), not raw text. Generates nonsensical text. Adds `imblearn` dependency. MUST be train-only (leakage if before split). |
+| **Random Oversampling** | Duplicates minority class samples | ❌ NO | Creates exact duplicates. Causes overfitting. MUST be train-only (duplicates in test = inflated metrics). |
+| **Random Undersampling** | Removes majority class samples | ❌ NO | For 23:1 ratio: discards 96% of data. Destroys information. MUST be train-only. |
+| **class_weight** | Adjusts loss function weights | ❌ NO (training) | Pure training-time concern. `sklearn: class_weight="balanced"`, PyTorch: weight tensor to loss function. |
+| **Stratified Split** | Preserves proportions in each split | ✅ YES (already planned) | Does NOT fix imbalance, but ensures representative splits. Already D-13/D-14. |
+
+**Key insight:** ALL resampling techniques modify the data distribution. If applied BEFORE split → data leakage (test set contains synthetic/duplicated samples). If applied AFTER split → belongs in the training loop, not the data pipeline.
+
+**What the data pipeline SHOULD do:**
+1. Perform stratified splits (already planned) ✅
+2. Log class distribution per split for visibility ✅
+3. Document imbalance ratios in output metadata (optional enhancement)
+
+**What the data pipeline SHOULD NOT do:**
+1. Apply SMOTE (needs embeddings, creates leakage)
+2. Apply oversampling (creates duplicates, leakage risk)
+3. Apply undersampling (destroys data)
+4. Compute class weights (training-time only)
+
+**The stratified split is the CORRECT data-pipeline-level response to class imbalance. Everything else is training-layer responsibility (Aadarsh's scope per D-56 in CONTEXT.md).**
+
+**Confidence:** HIGH — clear separation of concerns, verified against sklearn/imblearn documentation
+
+### Temporal Leakage: Subtle Paths Beyond `created_at < decided_at`
+
+The primary temporal leakage filter (`WHERE created_at < decided_at`) is correctly implemented. However, 5 additional subtle leakage paths exist:
+
+| # | Path | Risk | Confidence | Action |
+|---|------|------|------------|--------|
+| 1 | **Moderation updates after initial decision** — admin passes message at T1, reconsiders and flags at T2 | MEDIUM | MEDIUM | Use LATEST moderation record per message_id, or accept single-decision assumption |
+| 2 | **Text modification after creation** — Zulip allows message edits; cleaned_text may reflect edited version, not the version the moderator saw | LOW | LOW | Accept as acceptable noise; edits are rare in practice |
+| 3 | **Source column contamination** — synthetic data generated after real moderation may inadvertently mirror moderated patterns | LOW | MEDIUM | Synthetic data is generated from original CSV (Phase 1), not from moderated messages — already safe |
+| 4 | **Incremental pipeline window** — between runs, messages may be re-moderated | LOW | LOW | COALESCE(cleaned_text, text) handles text version; new decisions only adds, doesn't re-label |
+| 5 | **Test/val temporal proximity** — random split puts temporally adjacent messages in different splits | LOW | LOW | Acceptable for course project; time-series split deferred |
+
+**Recommendation:** The current `WHERE created_at < decided_at` filter handles the PRIMARY leakage path. The subtle paths (1-5) are real but have LOW to MEDIUM impact for this project scope. Document them in implementation comments for the ML team to be aware of.
+
+**Specific action for implementation:** Add a comment in the SQL query explaining WHY the temporal filter exists:
+```sql
+-- Temporal leakage prevention: only train on information available BEFORE the moderation decision.
+-- This ensures the model cannot learn from post-decision message content or edits.
+WHERE m.created_at < mod.decided_at
+```
+
+**Confidence:** MEDIUM — leakage paths are real but impact assessment is based on assumptions about Zulip behavior that would need production validation
+
+### `datetime.utcnow()` Deprecation: Confirmed
+
+**Verified on this system:** Python 3.12.3 emits `DeprecationWarning` for `datetime.utcnow()`:
+```
+DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal
+in a future version. Use timezone-aware objects to represent datetimes in UTC:
+datetime.datetime.now(datetime.UTC).
+```
+
+**Comparison test confirmed:** Mixing naive (`utcnow()`) and aware (`now(timezone.utc)`) datetimes raises `TypeError: can't compare offset-naive and offset-aware datetimes`.
+
+**Action:** Use `datetime.now(timezone.utc)` throughout `compile_training_data.py` for version naming and incremental query timestamps. This is already documented in the State of the Art section but warrants a code-level enforcement note.
+
+**Confidence:** HIGH — verified directly on target Python version
+
+### Summary of Deep Dive Findings
+
+| Topic | Finding | Confidence | Impact on Plan |
+|-------|---------|------------|----------------|
+| Two-step split | Switch to 70/30 → 50/50 approach (simpler ratios) | HIGH | Change Pattern 3 example code |
+| Empty stratify class | Must filter `1_1` (0 rows) before stratification | HIGH | Add pre-split class distribution check |
+| Class imbalance | Stratified split is sufficient; resampling = training layer | HIGH | No plan change needed |
+| Temporal leakage (subtle) | 5 additional paths identified, all LOW-MEDIUM risk | MEDIUM | Add SQL comment, document for ML team |
+| datetime.utcnow() | Deprecated in Python 3.12, confirmed with TypeError | HIGH | Enforce `now(timezone.utc)` in code
