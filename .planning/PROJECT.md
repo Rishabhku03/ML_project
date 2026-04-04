@@ -19,15 +19,17 @@ Deliver a self-contained, reproducible data pipeline with versioned training dat
 - **INGEST-01**: CSV ingestion script — validated in Phase 01
 - **INGEST-02**: Synthetic data generation via HuggingFace API — validated in Phase 01
 - **INGEST-03**: Data uploaded to MinIO with source tagging — validated in Phase 01
+- **BATCH-01**: Batch pipeline compiles versioned training datasets from PostgreSQL — validated in Phase 03
+- **BATCH-02**: Temporal data leakage prevention (created_at < decided_at) — validated in Phase 03
+- **BATCH-03**: Versioned snapshots in MinIO with timestamp tags — validated in Phase 03
+- **BATCH-04**: Post-submission metadata stripped before export — validated in Phase 03
+- **BATCH-05**: Stratified 70/15/15 split by is_suicide and is_toxicity labels — validated in Phase 03
 
 ### Active
 
 - [ ] **DATA-01**: High-level data design document with schemas, data repositories, and data flow diagrams
-- [ ] **DATA-02**: Live MinIO object storage bucket on Chameleon (browsable by course staff)
-- [ ] **DATA-03**: Ingestion pipeline that reads `combined_dataset.csv`, generates synthetic data via HuggingFace API, and uploads to MinIO
 - [ ] **DATA-04**: Synthetic data generator that hits dummy FastAPI endpoints with realistic Zulip-style messages
 - [ ] **DATA-05**: Online feature computation — real-time text preprocessing (markdown removal, emoji standardization, URL extraction) integrate-able with serving
-- [ ] **DATA-06**: Batch pipeline that compiles versioned training/evaluation datasets from "production" data, avoiding data leakage
 
 ### Out of Scope
 
@@ -86,4 +88,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-03 after Phase 01 completion (infrastructure + ingestion + gap closure)*
+*Last updated: 2026-04-04 after Phase 03 completion (batch pipeline — training data compiler with quality gates, temporal leakage prevention, stratified splits)*
