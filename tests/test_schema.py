@@ -6,8 +6,7 @@ import pytest
 def test_users_table_exists(pg_conn):
     cur = pg_conn.cursor()
     cur.execute(
-        "SELECT column_name FROM information_schema.columns "
-        "WHERE table_name = 'users'"
+        "SELECT column_name FROM information_schema.columns WHERE table_name = 'users'"
     )
     columns = {row[0] for row in cur.fetchall()}
     assert "id" in columns
@@ -27,12 +26,7 @@ def test_messages_table_exists_with_toxicity_columns(pg_conn):
     assert "id" in columns
     assert "user_id" in columns
     assert "text" in columns
-    assert "toxic" in columns
-    assert "severe_toxic" in columns
-    assert "obscene" in columns
-    assert "threat" in columns
-    assert "insult" in columns
-    assert "identity_hate" in columns
+    assert "is_toxicity" in columns
     assert "is_suicide" in columns
     assert "source" in columns
 
@@ -44,14 +38,15 @@ def test_messages_has_gin_index(pg_conn):
         "WHERE tablename = 'messages' AND indexname = 'idx_messages_text_fts'"
     )
     result = cur.fetchone()
-    assert result is not None, "GIN full-text search index idx_messages_text_fts not found"
+    assert result is not None, (
+        "GIN full-text search index idx_messages_text_fts not found"
+    )
 
 
 def test_flags_table_exists(pg_conn):
     cur = pg_conn.cursor()
     cur.execute(
-        "SELECT column_name FROM information_schema.columns "
-        "WHERE table_name = 'flags'"
+        "SELECT column_name FROM information_schema.columns WHERE table_name = 'flags'"
     )
     columns = {row[0] for row in cur.fetchall()}
     assert "id" in columns

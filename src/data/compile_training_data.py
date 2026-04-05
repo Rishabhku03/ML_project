@@ -240,7 +240,7 @@ def compile_initial() -> None:
     2. Concatenate into single DataFrame
     3. Run TextCleaner on text column to produce cleaned_text
     4. Bulk-load to PostgreSQL messages table
-    5. Select output columns (derive is_toxicity from CSV column)
+    5. Select output columns
     6. GE validation + Data Docs upload
     7. Quality gate (filter #ERROR!, short/long texts)
     8. Stratified split
@@ -336,7 +336,7 @@ def compile_incremental() -> None:
     Steps:
     1. Query PostgreSQL with INNER JOIN moderation + temporal filter
     2. Apply TextCleaner fallback for NULL cleaned_text (D-18)
-    3. Select output columns (derive is_toxicity from boolean OR per D-25)
+    3. Select output columns
     4. GE validation + Data Docs upload
     5. Quality gate (filter #ERROR!, short/long texts)
     6. Stratified split
@@ -371,7 +371,7 @@ def compile_incremental() -> None:
     # Drop temporal columns before validation
     df = df.drop(columns=["created_at", "decided_at"], errors="ignore")
 
-    # Select output columns (PostgreSQL source — derive is_toxicity per D-25)
+    # Select output columns
     df = select_output_columns(df)
 
     # GE validation (warn, generate HTML report)
