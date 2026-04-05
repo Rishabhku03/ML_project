@@ -136,6 +136,11 @@ def select_output_columns(df: pd.DataFrame) -> pd.DataFrame:
         df = df.copy()
         df["message_id"] = range(len(df))
 
+    # Ensure source exists (CSV rows default to 'real')
+    if "source" not in df.columns:
+        df = df.copy()
+        df["source"] = "real"
+
     output_cols = ["cleaned_text", "is_suicide", "is_toxicity", "source", "message_id"]
     return df[output_cols]
 
@@ -294,6 +299,19 @@ def compile_initial() -> None:
     logger.info("Running TextCleaner on text column")
     df["cleaned_text"] = df["text"].apply(lambda t: cleaner.clean(str(t)))
 
+    # Ensure a default user exists for foreign key constraint
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """INSERT INTO users (id, username, source)
+                   VALUES ('00000000-0000-0000-0000-000000000001', 'batch_pipeline', 'real')
+                   ON CONFLICT (id) DO NOTHING"""
+            )
+            conn.commit()
+    finally:
+        conn.close()
+
     # Bulk-load to PostgreSQL
     logger.info("Bulk-loading %d rows to PostgreSQL messages table", len(df))
     conn = get_db_connection()
@@ -301,13 +319,14 @@ def compile_initial() -> None:
         with conn.cursor() as cur:
             for _, row in df.iterrows():
                 cur.execute(
-                    """INSERT INTO messages (text, cleaned_text, is_suicide, source,
+                    """INSERT INTO messages (user_id, text, cleaned_text, is_suicide, source,
                        toxic, severe_toxic, obscene, threat, insult, identity_hate)
-                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
                     (
+                        "00000000-0000-0000-0000-000000000001",
                         row["text"],
                         row["cleaned_text"],
-                        row["is_suicide"],
+                        bool(row["is_suicide"]),
                         "real",
                         bool(row.get("is_toxicity", False)),
                         False,
