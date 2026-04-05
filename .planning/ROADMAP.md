@@ -85,3 +85,15 @@ Plans:
 | 2. Real-time Processing | 0/3 | Planning complete | - |
 | 3. Batch Pipeline | 0/1 | Planning complete | - |
 | 4. Design Doc & Config | 0/2 | Not started | - |
+| 5. Great Expectations DQ | 0/0 | Not started | - |
+
+### Phase 5: Integrate Great Expectations data quality framework
+
+**Goal:** Replace hand-coded quality gate with GE Expectation Suite — training data validated before MinIO upload, Data Docs generated for quality reporting
+**Requirements**: QUALITY-01, QUALITY-02, CONFIG-01
+**Depends on:** Phase 4 (for pipeline.yaml config — thresholds have defaults)
+**Plans:** 2 plans
+
+Plans:
+- [ ] 05-01: Create GE validation module + tests (data_quality.py, test_data_quality.py)
+- [ ] 05-02: Integrate GE into batch pipeline (compile_training_data.py, updated tests)
