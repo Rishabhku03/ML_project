@@ -11,7 +11,7 @@ from src.utils.config import config
 from src.utils.db import get_db_connection
 from src.utils.minio_client import get_minio_client
 
-from .routes import flags, messages
+from .routes import dashboard, flags, messages
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -64,6 +64,7 @@ async def text_cleaning_middleware(request, call_next):
 
 app.include_router(messages.router)
 app.include_router(flags.router)
+app.include_router(dashboard.router)
 
 
 def _get_default_user(cur) -> str:

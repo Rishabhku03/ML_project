@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}ChatSentry - Label Messages{% endblock %}
+
+{% block content %}
+<h1>Data Labeling Dashboard</h1>
+<p>Showing unlabeled live messages (source='real'). Check the boxes and click Save to label.</p>
+
+{% if messages %}
+<table>
+    <thead>
+        <tr>
+            <th>Message Text</th>
+            <th>Cleaned Text</th>
+            <th>Created</th>
+            <th class="checkbox-cell">Toxic</th>
+            <th class="checkbox-cell">Suicide</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for msg in messages %}
+        <tr>
+            <td class="message-text" title="{{ msg.text }}">{{ msg.text[:100] }}{% if msg.text|length > 100 %}...{% endif %}</td>
+            <td class="message-text" title="{{ msg.cleaned_text }}">{{ msg.cleaned_text[:100] if msg.cleaned_text else '' }}{% if msg.cleaned_text and msg.cleaned_text|length > 100 %}...{% endif %}</td>
+            <td>{{ msg.created_at.strftime('%Y-%m-%d %H:%M') if msg.created_at else '' }}</td>
+            <td class="checkbox-cell">
+                <input type="checkbox" id="toxic_{{ msg.id }}" name="toxic_{{ msg.id }}">
+            </td>
+            <td class="checkbox-cell">
+                <input type="checkbox" id="suicide_{{ msg.id }}" name="suicide_{{ msg.id }}">
+            </td>
+            <td>
+                <button class="btn btn-save" onclick="saveLabel('{{ msg.id }}')">Save</button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="pagination">
+    {% if page > 1 %}
+    <a href="/dashboard?page={{ page - 1 }}">← Previous</a>
+    {% endif %}
+    <span>Page {{ page }}</span>
+    {% if has_more %}
+    <a href="/dashboard?page={{ page + 1 }}">Next →</a>
+    {% endif %}
+</div>
+
+<script>
+async function saveLabel(messageId) {
+    const isToxic = document.getElementById('toxic_' + messageId).checked;
+    const isSuicide = document.getElementById('suicide_' + messageId).checked;
+    
+    try {
+        const response = await fetch('/dashboard/label', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                message_id: messageId,
+                is_toxicity: isToxic,
+                is_suicide: isSuicide
+            })
+        });
+        
+        if (response.ok) {
+            alert('Label saved!');
+            location.reload();
+        } else {
+            alert('Error saving label');
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+</script>
+{% else %}
+<p>No unlabeled messages found. All live messages have been labeled!</p>
+{% endif %}
+{% endblock %}
