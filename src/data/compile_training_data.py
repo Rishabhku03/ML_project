@@ -7,7 +7,6 @@ Two modes:
 Per BATCH-01 through BATCH-05.
 """
 
-import argparse
 import io
 import logging
 from datetime import datetime, timezone
@@ -416,16 +415,25 @@ if __name__ == "__main__":
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
-    parser = argparse.ArgumentParser(description="Batch training data compiler")
-    parser.add_argument(
-        "--mode",
-        choices=["initial", "incremental"],
-        default="incremental",
-        help="'initial' reads CSV from MinIO, 'incremental' queries PostgreSQL",
-    )
-    args = parser.parse_args()
 
-    if args.mode == "initial":
+    # Auto-detect mode: check if PostgreSQL has data
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT COUNT(*) FROM messages")
+            row_count = cur.fetchone()[0]
+    except Exception:
+        row_count = 0
+    finally:
+        conn.close()
+
+    if row_count == 0:
+        logger.info(
+            "PostgreSQL messages table is empty — running initial load from MinIO CSV"
+        )
         compile_initial()
     else:
+        logger.info(
+            "PostgreSQL has %d messages — running incremental compilation", row_count
+        )
         compile_incremental()
