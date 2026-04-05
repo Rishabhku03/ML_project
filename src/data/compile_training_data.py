@@ -340,7 +340,37 @@ def compile_initial() -> None:
     finally:
         conn.close()
 
-    # Apply quality gate
+    # Apply quality gate to PostgreSQL (not just in-memory DataFrame)
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            # Remove #ERROR! duplicates (DATA_ISSUES.md Issue 4)
+            cur.execute("DELETE FROM messages WHERE text LIKE '%%#ERROR!%%'")
+            error_deleted = cur.rowcount
+
+            # Filter texts below 10 chars (DATA_ISSUES.md Issue 5)
+            cur.execute("DELETE FROM messages WHERE LENGTH(cleaned_text) < 10")
+            short_deleted = cur.rowcount
+
+            # Cap texts above 5000 chars (DATA_ISSUES.md Issue 5)
+            cur.execute(
+                "UPDATE messages SET cleaned_text = LEFT(cleaned_text, 5000) "
+                "WHERE LENGTH(cleaned_text) > 5000"
+            )
+            capped = cur.rowcount
+
+            conn.commit()
+            logger.info(
+                "PostgreSQL quality gate: deleted %d #ERROR! rows, "
+                "deleted %d short texts, capped %d long texts",
+                error_deleted,
+                short_deleted,
+                capped,
+            )
+    finally:
+        conn.close()
+
+    # Apply quality gate (in-memory for training output)
     df = apply_quality_gate(df)
 
     # Select output columns (CSV source — use is_toxicity column directly per D-26)
