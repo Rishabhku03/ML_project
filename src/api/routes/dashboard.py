@@ -2,7 +2,7 @@
 
 import logging
 
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -104,6 +104,6 @@ async def save_label(label: LabelRequest):
     except Exception:
         conn.rollback()
         logger.exception("Failed to save label")
-        return {"status": "error", "message": "Failed to save label"}
+        raise HTTPException(status_code=500, detail="Failed to save label")
     finally:
         conn.close()

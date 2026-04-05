@@ -26,8 +26,6 @@ app = FastAPI(title="ChatSentry API", version="0.1.0")
 @app.middleware("http")
 async def text_cleaning_middleware(request, call_next):
     """Clean text on POST /messages and POST /flags, persist to DB."""
-    from starlette.requests import Request as _Req
-
     if request.method != "POST" or request.url.path not in ("/messages", "/flags"):
         return await call_next(request)
 
