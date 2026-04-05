@@ -64,8 +64,7 @@ def csv_sample_df() -> pd.DataFrame:
 def pg_sample_df() -> pd.DataFrame:
     """Sample DataFrame matching PostgreSQL messages+moderation join schema.
 
-    Represents the output of the incremental query with individual toxicity
-    booleans as returned by PostgreSQL (D-25: derived from OR of 6 columns).
+    Represents the output of the incremental query with is_toxicity column.
     """
     return pd.DataFrame(
         {
@@ -91,12 +90,7 @@ def pg_sample_df() -> pd.DataFrame:
                 "Shut up you moron",
             ],
             "is_suicide": [1, 0, 0, 1, 0, 0, 0, 0],
-            "toxic": [0, 0, 0, 0, 1, 0, 0, 1],
-            "severe_toxic": [0, 0, 0, 0, 0, 0, 0, 0],
-            "obscene": [0, 0, 0, 0, 0, 0, 0, 0],
-            "threat": [0, 0, 0, 0, 0, 0, 0, 0],
-            "insult": [0, 0, 0, 0, 1, 0, 0, 1],
-            "identity_hate": [0, 0, 0, 0, 0, 0, 0, 0],
+            "is_toxicity": [0, 0, 0, 0, 1, 0, 0, 1],
             "source": ["real"] * 8,
             "created_at": pd.to_datetime(
                 [
@@ -127,43 +121,124 @@ def pg_sample_df() -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
-# Quality gate tests (D-20 through D-24, BATCH-04)
+# GE validation tests (replaces quality gate, D-01 through D-05)
 # ---------------------------------------------------------------------------
 
 
-def test_quality_gate_removes_error_rows(csv_sample_df):
-    """Quality gate removes rows containing '#ERROR!' (D-21, DATA_ISSUES.md Issue 4)."""
+def test_ge_validation_replaces_quality_gate(csv_sample_df):
+    """GE validation is called instead of apply_quality_gate() (D-01)."""
+    from src.data.compile_training_data import select_output_columns
+    from src.data.data_quality import validate_training_data
+
+    df = select_output_columns(csv_sample_df)
+
+    success, results = validate_training_data(df)
+    assert isinstance(success, bool)
+    assert "statistics" in results
+    assert "expectation_results" in results
+
+
+def test_ge_validation_catches_error_rows(csv_sample_df):
+    """GE validation catches #ERROR! rows (replaces D-21)."""
+    from src.data.compile_training_data import select_output_columns
+    from src.data.data_quality import validate_training_data
+
+    df = select_output_columns(csv_sample_df)
+    success, results = validate_training_data(df)
+
+    regex_results = [
+        r
+        for r in results["expectation_results"]
+        if "regex" in r.expectation_config.type
+    ]
+    assert len(regex_results) == 1
+    assert not regex_results[0].success
+
+
+def test_ge_validation_catches_short_texts(csv_sample_df):
+    """GE validation catches texts below 10 chars (replaces D-22)."""
+    from src.data.compile_training_data import select_output_columns
+    from src.data.data_quality import validate_training_data
+
+    df = select_output_columns(csv_sample_df)
+    success, results = validate_training_data(df)
+
+    length_results = [
+        r
+        for r in results["expectation_results"]
+        if "lengths" in r.expectation_config.type
+    ]
+    assert len(length_results) == 1
+    assert not length_results[0].success
+
+
+def test_ge_validation_warn_and_continue(csv_sample_df):
+    """GE validation failures don't halt pipeline (D-03)."""
+    from src.data.compile_training_data import select_output_columns
+    from src.data.data_quality import validate_training_data
+
+    df = select_output_columns(csv_sample_df)
+    success, results = validate_training_data(df)
+    assert isinstance(success, bool)
+
+
+# ---------------------------------------------------------------------------
+# Quality gate tests (DATA_ISSUES.md Issues 4, 5)
+# ---------------------------------------------------------------------------
+
+
+def test_quality_gate_removes_error_rows():
+    """Quality gate removes rows containing '#ERROR!' (DATA_ISSUES.md Issue 4)."""
     from src.data.compile_training_data import apply_quality_gate
 
-    result = apply_quality_gate(csv_sample_df)
+    df = pd.DataFrame(
+        {
+            "cleaned_text": [
+                "#ERROR! duplicate",
+                "valid text that is long enough",
+                "short",
+                "another valid and sufficiently long text",
+                "#ERROR!",
+            ]
+        }
+    )
+    result = apply_quality_gate(df)
     assert not result["cleaned_text"].str.contains("#ERROR!", na=False).any()
 
 
-def test_quality_gate_filters_short_texts(csv_sample_df):
-    """Quality gate removes texts below 10 chars (D-22, DATA_ISSUES.md Issue 5)."""
+def test_quality_gate_filters_short_texts():
+    """Quality gate removes texts below 10 chars (DATA_ISSUES.md Issue 5)."""
     from src.data.compile_training_data import apply_quality_gate
 
-    result = apply_quality_gate(csv_sample_df)
+    df = pd.DataFrame(
+        {
+            "cleaned_text": [
+                "ok",
+                "valid text that is long enough",
+                "short",
+                "another valid and sufficiently long text",
+            ]
+        }
+    )
+    result = apply_quality_gate(df)
     assert (result["cleaned_text"].str.len() >= 10).all()
 
 
-def test_quality_gate_caps_long_texts(csv_sample_df):
-    """Quality gate caps texts above 5000 chars (D-23, DATA_ISSUES.md Issue 5)."""
+def test_quality_gate_caps_long_texts():
+    """Quality gate caps texts above 5000 chars (DATA_ISSUES.md Issue 5)."""
     from src.data.compile_training_data import apply_quality_gate
 
-    result = apply_quality_gate(csv_sample_df)
+    long_text = "x" * 6000
+    df = pd.DataFrame(
+        {
+            "cleaned_text": [
+                "valid text that is long enough",
+                long_text,
+            ]
+        }
+    )
+    result = apply_quality_gate(df)
     assert (result["cleaned_text"].str.len() <= 5000).all()
-
-
-def test_quality_gate_logs_results(csv_sample_df, caplog):
-    """Quality gate logs filtering results for audit trail (D-24)."""
-    import logging
-
-    from src.data.compile_training_data import apply_quality_gate
-
-    with caplog.at_level(logging.INFO):
-        apply_quality_gate(csv_sample_df)
-    assert "Quality gate" in caplog.text
 
 
 # ---------------------------------------------------------------------------
@@ -205,12 +280,7 @@ def test_output_schema_has_five_columns():
             "message_id": ["a"],
             "cleaned_text": ["hello"],
             "is_suicide": [0],
-            "toxic": [0],
-            "severe_toxic": [0],
-            "obscene": [0],
-            "threat": [0],
-            "insult": [0],
-            "identity_hate": [0],
+            "is_toxicity": [0],
             "source": ["real"],
             "created_at": pd.to_datetime(["2026-01-01T10:00:00Z"]),
             "decided_at": pd.to_datetime(["2026-01-01T12:00:00Z"]),

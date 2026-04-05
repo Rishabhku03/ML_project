@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
+from src.data.data_quality import upload_data_docs, validate_training_data
 from src.data.text_cleaner import TextCleaner
 from src.utils.config import config
 from src.utils.db import get_db_connection
@@ -30,52 +31,15 @@ INCREMENTAL_QUERY = """
         m.id AS message_id,
         COALESCE(m.cleaned_text, m.text) AS cleaned_text,
         m.is_suicide,
-        (m.toxic OR m.severe_toxic OR m.obscene OR m.threat
-            OR m.insult OR m.identity_hate) AS is_toxicity,
+        m.is_toxicity,
         m.source,
         m.created_at,
         mod.decided_at
     FROM messages m
     INNER JOIN moderation mod ON m.id = mod.message_id
-    -- Temporal leakage prevention: only train on information available
-    -- BEFORE the moderation decision. This ensures the model cannot
-    -- learn from post-decision message content or edits.
     WHERE m.created_at < mod.decided_at
     ORDER BY m.created_at
 """
-
-
-def apply_quality_gate(df: pd.DataFrame) -> pd.DataFrame:
-    """Filter known data quality issues before split (D-20 through D-24).
-
-    1. Remove #ERROR! duplicates (DATA_ISSUES.md Issue 4)
-    2. Filter texts below 10 chars (noise threshold, Issue 5)
-    3. Cap texts above 5000 chars (outlier threshold, Issue 5)
-
-    Args:
-        df: DataFrame with 'cleaned_text' column.
-
-    Returns:
-        Filtered DataFrame.
-    """
-    initial_count = len(df)
-
-    # Remove #ERROR! duplicates (D-21)
-    df = df[~df["cleaned_text"].str.contains("#ERROR!", na=False)]
-
-    # Filter texts below 10 chars (D-22)
-    df = df[df["cleaned_text"].str.len() >= 10]
-
-    # Cap texts above 5000 chars (D-23)
-    df["cleaned_text"] = df["cleaned_text"].str[:5000]
-
-    removed = initial_count - len(df)
-    logger.info(
-        "Quality gate: removed %d rows (%.2f%%)",
-        removed,
-        removed / initial_count * 100 if initial_count > 0 else 0,
-    )
-    return df
 
 
 def filter_temporal_leakage(df: pd.DataFrame) -> pd.DataFrame:
@@ -96,11 +60,42 @@ def filter_temporal_leakage(df: pd.DataFrame) -> pd.DataFrame:
     return df[df["created_at"] < df["decided_at"]].copy()
 
 
-def select_output_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """Select and derive the 5 export columns (BATCH-04, D-15 through D-17).
+def apply_quality_gate(df: pd.DataFrame) -> pd.DataFrame:
+    """Filter known data quality issues before training bucket upload.
 
-    For PostgreSQL rows: derive is_toxicity from OR of 6 toxicity booleans (D-25).
-    For CSV rows: use is_toxicity column directly (D-26).
+    Covers DATA_ISSUES.md:
+    - Issue 4: Remove #ERROR! duplicates (262 rows)
+    - Issue 5: Filter texts below 10 chars (noise)
+    - Issue 5: Cap texts above 5000 chars (outliers)
+
+    Args:
+        df: DataFrame with 'cleaned_text' column.
+
+    Returns:
+        Filtered DataFrame.
+    """
+    initial_count = len(df)
+
+    # Remove #ERROR! duplicates (DATA_ISSUES.md Issue 4)
+    df = df[~df["cleaned_text"].str.contains("#ERROR!", na=False)]
+
+    # Filter texts below 10 chars (DATA_ISSUES.md Issue 5)
+    df = df[df["cleaned_text"].str.len() >= 10]
+
+    # Cap texts above 5000 chars (DATA_ISSUES.md Issue 5)
+    df["cleaned_text"] = df["cleaned_text"].str[:5000]
+
+    removed = initial_count - len(df)
+    logger.info(
+        "Quality gate: removed %d rows (%.2f%%)",
+        removed,
+        removed / initial_count * 100 if initial_count > 0 else 0,
+    )
+    return df
+
+
+def select_output_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Select output columns for training data.
 
     Output columns: cleaned_text, is_suicide, is_toxicity, source, message_id.
 
@@ -110,26 +105,6 @@ def select_output_columns(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         DataFrame with exactly 5 columns.
     """
-    # Derive is_toxicity if individual booleans present (PostgreSQL source)
-    toxicity_cols = [
-        "toxic",
-        "severe_toxic",
-        "obscene",
-        "threat",
-        "insult",
-        "identity_hate",
-    ]
-    if all(col in df.columns for col in toxicity_cols):
-        df = df.copy()
-        df["is_toxicity"] = (
-            df["toxic"]
-            | df["severe_toxic"]
-            | df["obscene"]
-            | df["threat"]
-            | df["insult"]
-            | df["identity_hate"]
-        ).astype(int)
-
     # Ensure message_id exists (CSV rows use index or row number)
     if "message_id" not in df.columns:
         df = df.copy()
@@ -265,10 +240,11 @@ def compile_initial() -> None:
     2. Concatenate into single DataFrame
     3. Run TextCleaner on text column to produce cleaned_text
     4. Bulk-load to PostgreSQL messages table
-    5. Apply quality gate
-    6. Select output columns (derive is_toxicity from CSV column)
-    7. Stratified split
-    8. Upload versioned snapshot to MinIO
+    5. Select output columns (derive is_toxicity from CSV column)
+    6. GE validation + Data Docs upload
+    7. Quality gate (filter #ERROR!, short/long texts)
+    8. Stratified split
+    9. Upload versioned snapshot to MinIO
     """
     client = get_minio_client()
     cleaner = TextCleaner()
@@ -318,21 +294,15 @@ def compile_initial() -> None:
         with conn.cursor() as cur:
             for _, row in df.iterrows():
                 cur.execute(
-                    """INSERT INTO messages (user_id, text, cleaned_text, is_suicide, source,
-                       toxic, severe_toxic, obscene, threat, insult, identity_hate)
-                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                    """INSERT INTO messages (user_id, text, cleaned_text, is_suicide, is_toxicity, source)
+                       VALUES (%s, %s, %s, %s, %s, %s)""",
                     (
                         "00000000-0000-0000-0000-000000000001",
                         row["text"],
                         row["cleaned_text"],
                         bool(row["is_suicide"]),
+                        bool(row.get("is_toxicity", False)),
                         "real",
-                        bool(row.get("is_toxicity", False)),
-                        False,
-                        False,
-                        False,
-                        bool(row.get("is_toxicity", False)),
-                        False,
                     ),
                 )
         conn.commit()
@@ -340,41 +310,16 @@ def compile_initial() -> None:
     finally:
         conn.close()
 
-    # Apply quality gate to PostgreSQL (not just in-memory DataFrame)
-    conn = get_db_connection()
-    try:
-        with conn.cursor() as cur:
-            # Remove #ERROR! duplicates (DATA_ISSUES.md Issue 4)
-            cur.execute("DELETE FROM messages WHERE text LIKE '%%#ERROR!%%'")
-            error_deleted = cur.rowcount
-
-            # Filter texts below 10 chars (DATA_ISSUES.md Issue 5)
-            cur.execute("DELETE FROM messages WHERE LENGTH(cleaned_text) < 10")
-            short_deleted = cur.rowcount
-
-            # Cap texts above 5000 chars (DATA_ISSUES.md Issue 5)
-            cur.execute(
-                "UPDATE messages SET cleaned_text = LEFT(cleaned_text, 5000) "
-                "WHERE LENGTH(cleaned_text) > 5000"
-            )
-            capped = cur.rowcount
-
-            conn.commit()
-            logger.info(
-                "PostgreSQL quality gate: deleted %d #ERROR! rows, "
-                "deleted %d short texts, capped %d long texts",
-                error_deleted,
-                short_deleted,
-                capped,
-            )
-    finally:
-        conn.close()
-
-    # Apply quality gate (in-memory for training output)
-    df = apply_quality_gate(df)
-
-    # Select output columns (CSV source — use is_toxicity column directly per D-26)
+    # GE validation replaces SQL quality gate (D-01)
     df = select_output_columns(df)
+
+    # GE validation (warn, generate HTML report)
+    success, results = validate_training_data(df)
+    if results.get("data_docs_html"):
+        upload_data_docs(results["data_docs_html"], config.BUCKET_TRAINING)
+
+    # Quality gate: filter data issues before training bucket (DATA_ISSUES.md Issues 4, 5)
+    df = apply_quality_gate(df)
 
     # Stratified split
     train_df, val_df, test_df = stratified_split(df)
@@ -391,10 +336,11 @@ def compile_incremental() -> None:
     Steps:
     1. Query PostgreSQL with INNER JOIN moderation + temporal filter
     2. Apply TextCleaner fallback for NULL cleaned_text (D-18)
-    3. Apply quality gate
-    4. Select output columns (derive is_toxicity from boolean OR per D-25)
-    5. Stratified split
-    6. Upload versioned snapshot to MinIO
+    3. Select output columns (derive is_toxicity from boolean OR per D-25)
+    4. GE validation + Data Docs upload
+    5. Quality gate (filter #ERROR!, short/long texts)
+    6. Stratified split
+    7. Upload versioned snapshot to MinIO
     """
     conn = get_db_connection()
     try:
@@ -422,14 +368,19 @@ def compile_incremental() -> None:
             lambda t: cleaner.clean(str(t)) if pd.notna(t) else "",
         )
 
-    # Drop temporal columns before quality gate
+    # Drop temporal columns before validation
     df = df.drop(columns=["created_at", "decided_at"], errors="ignore")
-
-    # Apply quality gate
-    df = apply_quality_gate(df)
 
     # Select output columns (PostgreSQL source — derive is_toxicity per D-25)
     df = select_output_columns(df)
+
+    # GE validation (warn, generate HTML report)
+    success, results = validate_training_data(df)
+    if results.get("data_docs_html"):
+        upload_data_docs(results["data_docs_html"], config.BUCKET_TRAINING)
+
+    # Quality gate: filter data issues before training bucket (DATA_ISSUES.md Issues 4, 5)
+    df = apply_quality_gate(df)
 
     # Stratified split
     train_df, val_df, test_df = stratified_split(df)
