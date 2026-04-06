@@ -17,7 +17,7 @@ MINIO_ENDPOINT = os.environ.get("S3_ENDPOINT", "chi.tacc.chameleoncloud.org:7480
 MINIO_ACCESS_KEY = os.environ.get("MINIO_ACCESS_KEY", "admin")
 MINIO_SECRET_KEY = os.environ.get("MINIO_SECRET_KEY", "chatsentry_minio")
 MINIO_SECURE = os.environ.get("S3_SECURE", "true").lower() == "true"
-BUCKET_TRAINING = os.environ.get("BUCKET_TRAINING", "zulip-training-data")
+BUCKET_TRAINING = os.environ.get("BUCKET_TRAINING", "chatsentry-data")
 
 # Cache for HTML reports
 _reports_cache: dict[str, str] = {}

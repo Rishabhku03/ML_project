@@ -1,8 +1,8 @@
-"""Integration tests for MinIO upload. Requires running Docker services."""
+"""Integration tests for S3 upload. Requires running Docker services."""
 
 
-def test_minio_bucket_accessible(minio_client):
-    assert minio_client.bucket_exists("zulip-raw-messages")
+def test_s3_bucket_accessible(minio_client):
+    assert minio_client.bucket_exists("chatsentry-data")
 
 
 def test_ingest_script_importable():

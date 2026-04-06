@@ -148,7 +148,7 @@ def clean_state(docker_services):
 
     # S3 cleanup
     client = get_minio_client()
-    for bucket in [config.BUCKET_RAW, config.BUCKET_TRAINING]:
+    for bucket in {config.BUCKET_RAW, config.BUCKET_TRAINING}:
         if client.bucket_exists(bucket):
             objects = list(client.list_objects(bucket, recursive=True))
             if objects:

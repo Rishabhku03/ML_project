@@ -17,8 +17,8 @@ split:
   random_state: 42             # Reproducibility seed
 
 buckets:
-  raw: zulip-raw-messages      # MinIO bucket for ingested data
-  training: zulip-training-data # MinIO bucket for versioned training snapshots
+  raw: chatsentry-data           # Single bucket for all data (prefixed by type)
+  training: chatsentry-data      # Same bucket — prefixes keep data organized
 
 traffic:
   rps_target: 15               # Requests per second for synthetic traffic generator

@@ -55,7 +55,7 @@ services:
       - S3_SECURE=${S3_SECURE:-true}
       - MINIO_ACCESS_KEY=${S3_ACCESS_KEY}
       - MINIO_SECRET_KEY=${S3_SECRET_KEY}
-      - BUCKET_TRAINING=zulip-training-data
+      - BUCKET_TRAINING=chatsentry-data
 
 volumes:
   postgres_data:

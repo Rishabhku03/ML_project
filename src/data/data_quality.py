@@ -244,7 +244,7 @@ def _generate_data_docs_html(result, suite: ExpectationSuite) -> str:
     return html
 
 
-def upload_data_docs(html: str, bucket: str = "zulip-training-data") -> str:
+def upload_data_docs(html: str, bucket: str = "chatsentry-data") -> str:
     """Upload Data Docs HTML to MinIO (D-04).
 
     Args:
