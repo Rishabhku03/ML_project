@@ -2,7 +2,7 @@
 
 Provides:
 - docker_services: session-scoped, starts docker-compose, waits for health
-- clean_state: function-scoped, truncates tables + clears MinIO objects
+- clean_state: function-scoped, truncates tables + clears S3 objects
 - test_dataset_small/medium: stratified samples from combined_dataset.csv
 - kill_container: context manager for chaos injection
 - corrupt_data: context manager for data corruption scenarios
@@ -38,6 +38,9 @@ def _wait_for_postgres(timeout: int = HEALTH_CHECK_TIMEOUT) -> bool:
     while time.time() < deadline:
         result = subprocess.run(
             [
+                "docker",
+                "exec",
+                "postgres",
                 "pg_isready",
                 "-h",
                 "localhost",
@@ -59,22 +62,19 @@ def _wait_for_postgres(timeout: int = HEALTH_CHECK_TIMEOUT) -> bool:
     return False
 
 
-def _wait_for_minio(timeout: int = HEALTH_CHECK_TIMEOUT) -> bool:
-    """Poll MinIO health endpoint or timeout."""
-    import urllib.request
-
+def _wait_for_s3(timeout: int = HEALTH_CHECK_TIMEOUT) -> bool:
+    """Poll S3 via MinIO client until connection succeeds or timeout."""
     deadline = time.time() + timeout
-    url = "http://localhost:9000/minio/health/live"
     while time.time() < deadline:
         try:
-            req = urllib.request.urlopen(url, timeout=3)
-            if req.getcode() == 200:
-                logger.info("MinIO is ready")
-                return True
+            client = get_minio_client()
+            client.list_buckets()
+            logger.info("S3 is ready")
+            return True
         except Exception:
             pass
         time.sleep(HEALTH_CHECK_INTERVAL)
-    logger.error("MinIO health check timed out after %ds", timeout)
+    logger.error("S3 health check timed out after %ds", timeout)
     return False
 
 
@@ -84,10 +84,19 @@ def docker_services():
 
     Skips startup if services are already running (checks pg_isready).
     """
-    # Check if already running
+    # Check if already running (via docker exec since pg_isready may not be on host)
     pg_already_running = (
         subprocess.run(
-            ["pg_isready", "-h", "localhost", "-p", "5432"],
+            [
+                "docker",
+                "exec",
+                "postgres",
+                "pg_isready",
+                "-h",
+                "localhost",
+                "-p",
+                "5432",
+            ],
             capture_output=True,
         ).returncode
         == 0
@@ -106,7 +115,7 @@ def docker_services():
 
     # Wait for health checks
     assert _wait_for_postgres(), "PostgreSQL did not become healthy"
-    assert _wait_for_minio(), "MinIO did not become healthy"
+    assert _wait_for_s3(), "S3 did not become healthy"
 
     yield
 
@@ -124,7 +133,7 @@ def docker_services():
 
 @pytest.fixture
 def clean_state(docker_services):
-    """Truncate PostgreSQL tables and clear MinIO objects between tests."""
+    """Truncate PostgreSQL tables and clear S3 objects between tests."""
     # PostgreSQL cleanup
     conn = get_db_connection()
     try:
@@ -137,7 +146,7 @@ def clean_state(docker_services):
     finally:
         conn.close()
 
-    # MinIO cleanup
+    # S3 cleanup
     client = get_minio_client()
     for bucket in [config.BUCKET_RAW, config.BUCKET_TRAINING]:
         if client.bucket_exists(bucket):
@@ -198,8 +207,6 @@ def kill_container(service_name: str):
         # Wait for health after restart
         if service_name == "postgres":
             _wait_for_postgres()
-        elif service_name == "minio":
-            _wait_for_minio()
         else:
             time.sleep(5)  # Generic wait for other services
 

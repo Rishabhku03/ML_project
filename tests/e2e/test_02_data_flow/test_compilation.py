@@ -14,8 +14,8 @@ import pandas as pd
 import pytest
 
 from src.data.compile_training_data import (
-    filter_temporal_leakage,
     apply_quality_gate,
+    filter_temporal_leakage,
 )
 from src.utils.config import config
 from src.utils.db import get_db_connection
@@ -107,16 +107,22 @@ class TestCompilation:
         conn = get_db_connection()
         try:
             cur = conn.cursor()
+            # Create test user first (messages.user_id is NOT NULL with FK)
+            cur.execute(
+                "INSERT INTO users (id, username, source) "
+                "VALUES (gen_random_uuid(), 'test_user_compilation', 'real') RETURNING id"
+            )
+            user_id = cur.fetchone()[0]
             # Insert test messages
             cur.execute(
-                "INSERT INTO messages (id, text, cleaned_text, is_suicide, is_toxicity, source, created_at) "
-                "VALUES (gen_random_uuid(), %s, %s, %s, %s, %s, NOW())",
-                ("raw text 1", "cleaned text 1", False, False, "test"),
+                "INSERT INTO messages (id, user_id, text, cleaned_text, is_suicide, is_toxicity, source, created_at) "
+                "VALUES (gen_random_uuid(), %s, %s, %s, %s, %s, %s, NOW())",
+                (user_id, "raw text 1", "cleaned text 1", False, False, "real"),
             )
             cur.execute(
-                "INSERT INTO messages (id, text, cleaned_text, is_suicide, is_toxicity, source, created_at) "
-                "VALUES (gen_random_uuid(), %s, %s, %s, %s, %s, NOW())",
-                ("raw text 2", "cleaned text 2", True, False, "test"),
+                "INSERT INTO messages (id, user_id, text, cleaned_text, is_suicide, is_toxicity, source, created_at) "
+                "VALUES (gen_random_uuid(), %s, %s, %s, %s, %s, %s, NOW())",
+                (user_id, "raw text 2", "cleaned text 2", True, False, "real"),
             )
             conn.commit()
 

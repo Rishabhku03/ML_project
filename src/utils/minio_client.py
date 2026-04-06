@@ -9,10 +9,11 @@ logger = logging.getLogger(__name__)
 
 def get_minio_client() -> Minio:
     client = Minio(
-        endpoint=config.MINIO_ENDPOINT,
+        endpoint=config.S3_ENDPOINT,
         access_key=config.MINIO_ACCESS_KEY,
         secret_key=config.MINIO_SECRET_KEY,
-        secure=config.MINIO_SECURE,
+        secure=config.S3_SECURE,
+        region="",
     )
-    logger.info("MinIO client connected to %s", config.MINIO_ENDPOINT)
+    logger.info("S3 client connected to %s", config.S3_ENDPOINT)
     return client

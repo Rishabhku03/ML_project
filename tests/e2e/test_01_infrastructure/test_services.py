@@ -22,8 +22,8 @@ logger = logging.getLogger(__name__)
 # Tables defined in docker/init_sql/00_create_tables.sql
 EXPECTED_TABLES = {"users", "messages", "moderation", "flags"}
 EXPECTED_BUCKETS = {config.BUCKET_RAW, config.BUCKET_TRAINING}
-# Containers from docker/docker-compose.yaml
-EXPECTED_CONTAINERS = {"postgres", "minio", "minio-init", "adminer", "api", "ge-viewer"}
+# Containers from docker/docker-compose.yaml (no MinIO — using Chameleon S3)
+EXPECTED_CONTAINERS = {"postgres", "adminer", "api", "ge-viewer"}
 
 
 @pytest.mark.infrastructure
@@ -56,11 +56,11 @@ class TestPostgresHealth:
 
 
 @pytest.mark.infrastructure
-class TestMinioHealth:
-    """Verify MinIO is reachable and buckets are created."""
+class TestS3Health:
+    """Verify Chameleon S3 is reachable and buckets are accessible."""
 
     def test_connection(self, docker_services):
-        """MinIO client can connect and list buckets."""
+        """S3 client can connect and list buckets."""
         client = get_minio_client()
         buckets = [b.name for b in client.list_buckets()]
         assert len(buckets) >= 2, f"Expected >=2 buckets, got {buckets}"
@@ -85,7 +85,7 @@ class TestApiHealth:
         req = urllib.request.urlopen(url, timeout=10)
         assert req.getcode() == 200, f"Expected 200, got {req.getcode()}"
         body = json.loads(req.read().decode())
-        assert body.get("status") == "healthy", f"Unexpected body: {body}"
+        assert body.get("status") == "ok", f"Unexpected body: {body}"
 
 
 @pytest.mark.infrastructure
@@ -93,7 +93,7 @@ class TestDockerComposeRunning:
     """Verify all expected containers are in running state."""
 
     def test_all_containers_running(self, docker_services):
-        """All 6 containers from docker-compose.yaml are running."""
+        """All expected containers from docker-compose.yaml are running."""
         result = subprocess.run(
             [
                 "docker",

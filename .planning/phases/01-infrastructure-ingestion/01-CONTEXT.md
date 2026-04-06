@@ -26,7 +26,7 @@ Docker Compose stack running PostgreSQL, MinIO, and FastAPI stub on the KVM@TACC
 
 ### Synthetic Data Generation
 - **D-09:** HuggingFace model: `mistralai/Mistral-7B-Instruct-v0.2` via Inference API
-- **D-10:** Target volume: ~400K synthetic rows (~25% of real data)
+- **D-10:** Target volume: ~10K synthetic rows (representative sample; full-scale generation deferred to batch pipeline phase)
 - **D-11:** Oversample minority classes (toxic/suicide) to rebalance the dataset
 - **D-12:** Multi-turn thread prompts to generate realistic Zulip-style conversations
 - **D-13:** Prompt-guided labeling — prompt instructs model to generate toxic or benign content; labels assigned from prompt, not post-hoc classification

@@ -1,9 +1,0 @@
-docker/.env
-__pycache__/
-*.pyc
-.opencode/
-*.egg-info/
-dist/
-build/
-.venv/
-combined_dataset.csv

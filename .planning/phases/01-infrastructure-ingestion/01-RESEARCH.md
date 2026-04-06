@@ -25,7 +25,7 @@ The course lab (`data-platform-chi`) provides exact Docker Compose patterns for 
 - **D-07:** MinIO only — ingestion uploads to object storage, does NOT load into PostgreSQL
 - **D-08:** By-dataset folder structure: `zulip-raw-messages/combined_dataset/chunk_000.csv`
 - **D-09:** HuggingFace model: `mistralai/Mistral-7B-Instruct-v0.2` via Inference API
-- **D-10:** Target volume: ~400K synthetic rows (~25% of real data)
+- **D-10:** Target volume: ~10K synthetic rows (representative sample; full-scale generation deferred to batch pipeline phase)
 - **D-11:** Oversample minority classes (toxic/suicide) to rebalance the dataset
 - **D-12:** Multi-turn thread prompts to generate realistic Zulip-style conversations
 - **D-13:** Prompt-guided labeling — prompt instructs model to generate toxic or benign content; labels assigned from prompt, not post-hoc classification
@@ -462,7 +462,7 @@ async def create_message(payload: MessagePayload):
 
 1. **HuggingFace Inference API provider selection for Mistral-7B-Instruct-v0.2**
    - What we know: The model page shows "Featherless AI" as an inference provider. The free HF Inference API may also serve it.
-   - What's unclear: Which provider has the best availability/rate limits for ~400K tokens of generation
+   - What's unclear: Which provider has the best availability/rate limits for ~1M tokens of generation
    - Recommendation: Try `provider="featherless-ai"` first; fall back to default HF inference if needed. Implement retry logic regardless.
 
 2. **MinIO image tag version**

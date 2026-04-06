@@ -70,6 +70,10 @@ def _env_kwargs() -> dict:
         "MINIO_ACCESS_KEY": os.environ.get("MINIO_ACCESS_KEY", "admin"),
         "MINIO_SECRET_KEY": os.environ.get("MINIO_SECRET_KEY", "chatsentry_minio"),
         "MINIO_SECURE": os.environ.get("MINIO_SECURE", "false").lower() == "true",
+        "S3_ENDPOINT": os.environ.get(
+            "S3_ENDPOINT", "chi.tacc.chameleoncloud.org:7480"
+        ),
+        "S3_SECURE": os.environ.get("S3_SECURE", "true").lower() == "true",
         "HF_TOKEN": os.environ.get("HF_TOKEN", ""),
     }
 
@@ -82,6 +86,8 @@ class Config:
     MINIO_ACCESS_KEY: str = "admin"
     MINIO_SECRET_KEY: str = "chatsentry_minio"
     MINIO_SECURE: bool = False
+    S3_ENDPOINT: str = "chi.tacc.chameleoncloud.org:7480"
+    S3_SECURE: bool = True
     HF_TOKEN: str = ""
 
     # --- Pipeline tunables (from YAML, per D-07) ---

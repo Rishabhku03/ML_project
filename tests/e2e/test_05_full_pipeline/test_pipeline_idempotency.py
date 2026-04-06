@@ -10,9 +10,7 @@ Run: pytest tests/e2e/test_05_full_pipeline/test_pipeline_idempotency.py -v -m f
 import io
 import logging
 import os
-import subprocess
 import tempfile
-import time
 
 import pandas as pd
 import pytest
@@ -93,10 +91,8 @@ class TestPipelineIdempotency:
         # Row counts must match (version names will differ — that's OK)
         assert stats1 == stats2, f"Idempotency failed: run1={stats1}, run2={stats2}"
 
-    def test_pipeline_with_minio_restart(
-        self, docker_services, clean_state, test_dataset_small
-    ):
-        """Pipeline handles MinIO restart during run (chaos during execution)."""
+    def test_pipeline_with_s3(self, docker_services, clean_state, test_dataset_small):
+        """Pipeline runs end-to-end with S3 (managed remote storage)."""
         client = get_minio_client()
 
         # Upload initial data
@@ -120,15 +116,9 @@ class TestPipelineIdempotency:
         finally:
             os.unlink(temp_csv)
 
-        # Restart MinIO mid-pipeline
-        subprocess.run(["docker", "restart", "minio"], check=True, capture_output=True)
-        time.sleep(5)
-
-        # Pipeline should still work after restart
+        # S3 is always available (remote managed service)
         client = get_minio_client()
-        assert client.bucket_exists(config.BUCKET_RAW), (
-            "MinIO not available after restart"
-        )
+        assert client.bucket_exists(config.BUCKET_RAW), "S3 not available"
 
         # Continue pipeline — clean and split
         df = test_dataset_small.copy()
@@ -148,6 +138,4 @@ class TestPipelineIdempotency:
         version = upload_snapshot(
             client, config.BUCKET_TRAINING, train_df, val_df, test_df
         )
-        assert version.startswith("v"), (
-            f"Snapshot failed after MinIO restart: {version}"
-        )
+        assert version.startswith("v"), f"Snapshot failed: {version}"

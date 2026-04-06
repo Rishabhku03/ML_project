@@ -9,7 +9,6 @@ import logging
 
 import pytest
 
-from tests.e2e.conftest import kill_container
 from src.utils.db import get_db_connection
 
 logger = logging.getLogger(__name__)
@@ -21,10 +20,10 @@ class TestDatabaseFailures:
 
     def test_postgres_down_during_query(self, docker_services, clean_state):
         """Pipeline detects DB failure, doesn't crash with unhandled exception."""
-        import psycopg2
-
         # Stop postgres
         import subprocess
+
+        import psycopg2
 
         subprocess.run(["docker", "stop", "postgres"], check=True, capture_output=True)
 
@@ -56,10 +55,17 @@ class TestDatabaseFailures:
         conn = get_db_connection()
         try:
             cur = conn.cursor()
+            # Create test user (messages.user_id is NOT NULL with FK)
+            cur.execute(
+                "INSERT INTO users (id, username, source) "
+                "VALUES (gen_random_uuid(), 'test_user_rollback', 'real') RETURNING id"
+            )
+            user_id = cur.fetchone()[0]
             # Start transaction, insert, then rollback
             cur.execute(
-                "INSERT INTO messages (id, text, cleaned_text, is_suicide, is_toxicity, source, created_at) "
-                "VALUES (gen_random_uuid(), 'rollback test', 'rollback test', false, false, 'test', NOW())"
+                "INSERT INTO messages (id, user_id, text, cleaned_text, is_suicide, is_toxicity, source, created_at) "
+                "VALUES (gen_random_uuid(), %s, 'rollback test', 'rollback test', false, false, 'real', NOW())",
+                (user_id,),
             )
             conn.rollback()
 

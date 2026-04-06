@@ -6,12 +6,10 @@ but with 10K rows to catch scaling issues.
 Run: pytest tests/e2e/test_05_full_pipeline/test_full_pipeline_medium.py -v -m full_pipeline
 """
 
-import io
 import logging
 import os
 import tempfile
 
-import pandas as pd
 import pytest
 
 from src.data.compile_training_data import (

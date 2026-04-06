@@ -3,9 +3,8 @@
 
 import logging
 import os
-from io import BytesIO
 
-from flask import Flask, render_template_string, abort
+from flask import Flask, abort, render_template_string
 from minio import Minio
 
 logging.basicConfig(level=logging.INFO)
@@ -14,9 +13,10 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 # Configuration from environment
-MINIO_ENDPOINT = os.environ.get("MINIO_ENDPOINT", "localhost:9000")
+MINIO_ENDPOINT = os.environ.get("S3_ENDPOINT", "chi.tacc.chameleoncloud.org:7480")
 MINIO_ACCESS_KEY = os.environ.get("MINIO_ACCESS_KEY", "admin")
 MINIO_SECRET_KEY = os.environ.get("MINIO_SECRET_KEY", "chatsentry_minio")
+MINIO_SECURE = os.environ.get("S3_SECURE", "true").lower() == "true"
 BUCKET_TRAINING = os.environ.get("BUCKET_TRAINING", "zulip-training-data")
 
 # Cache for HTML reports
@@ -24,12 +24,13 @@ _reports_cache: dict[str, str] = {}
 
 
 def get_minio_client() -> Minio:
-    """Create MinIO client."""
+    """Create MinIO client (S3-compatible)."""
     return Minio(
         endpoint=MINIO_ENDPOINT,
         access_key=MINIO_ACCESS_KEY,
         secret_key=MINIO_SECRET_KEY,
-        secure=False,
+        secure=MINIO_SECURE,
+        region="",
     )
 
 

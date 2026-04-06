@@ -5,7 +5,6 @@ Verifies pipeline handles large datasets without OOM.
 Run: pytest tests/e2e/test_04_chaos/test_resource_exhaustion.py -v -m chaos
 """
 
-import io
 import logging
 import tracemalloc
 
@@ -14,7 +13,6 @@ import pytest
 
 from src.data.text_cleaner import TextCleaner
 from src.utils.config import config
-from src.utils.minio_client import get_minio_client
 
 logger = logging.getLogger(__name__)
 

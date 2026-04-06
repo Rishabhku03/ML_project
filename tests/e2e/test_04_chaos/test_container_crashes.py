@@ -10,7 +10,6 @@ import logging
 import subprocess
 import time
 
-import pandas as pd
 import pytest
 
 from src.utils.config import config
@@ -29,9 +28,16 @@ class TestContainerCrashes:
         # Insert data before crash
         conn = get_db_connection()
         cur = conn.cursor()
+        # Create test user (messages.user_id is NOT NULL with FK)
         cur.execute(
-            "INSERT INTO messages (id, text, cleaned_text, is_suicide, is_toxicity, source, created_at) "
-            "VALUES (gen_random_uuid(), 'before crash', 'before crash', false, false, 'test', NOW())"
+            "INSERT INTO users (id, username, source) "
+            "VALUES (gen_random_uuid(), 'test_user_crash', 'real') RETURNING id"
+        )
+        user_id = cur.fetchone()[0]
+        cur.execute(
+            "INSERT INTO messages (id, user_id, text, cleaned_text, is_suicide, is_toxicity, source, created_at) "
+            "VALUES (gen_random_uuid(), %s, 'before crash', 'before crash', false, false, 'real', NOW())",
+            (user_id,),
         )
         conn.commit()
         cur.close()
@@ -54,8 +60,8 @@ class TestContainerCrashes:
         conn.close()
         assert row is not None, "Data lost after API crash/restart"
 
-    def test_minio_data_persists_after_restart(self, docker_services, clean_state):
-        """MinIO objects survive container restart."""
+    def test_s3_data_persists(self, docker_services, clean_state):
+        """S3 objects persist across operations (S3 is a managed remote service)."""
         client = get_minio_client()
         data = b"persistent data"
         client.put_object(
@@ -65,15 +71,9 @@ class TestContainerCrashes:
             length=len(data),
         )
 
-        # Crash and restart minio
-        subprocess.run(["docker", "stop", "minio"], check=True, capture_output=True)
-        time.sleep(2)
-        subprocess.run(["docker", "start", "minio"], check=True, capture_output=True)
-        time.sleep(5)
-
-        # Verify data persists
-        client = get_minio_client()
-        response = client.get_object(config.BUCKET_RAW, "test/crash/persist.csv")
+        # Verify data is accessible on a fresh client (simulates VM recreation)
+        client2 = get_minio_client()
+        response = client2.get_object(config.BUCKET_RAW, "test/crash/persist.csv")
         content = response.read()
         response.close()
-        assert content == data, "MinIO data lost after restart"
+        assert content == data, "S3 data not accessible on fresh client"

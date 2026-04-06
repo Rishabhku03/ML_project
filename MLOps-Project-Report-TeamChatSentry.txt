@@ -1,0 +1,76 @@
+AI Moderation Feature for Zulip
+Aadarsh LN (al9581), Nitish KS (nk4277), Purvansh Arora (pa2757), Rishabh Narayan (rn2718)
+
+Introduction
+This document proposes a feature for moderating chats on the open-source
+communication platform, Zulip, which lacks automated content moderation. The
+intended users in this specific use-case will be students, with a user base of 300 users.
+Our main motivation for designing this feature is to strive for a safer environment for
+chatting on Zulip. The current platform is painful from an administrative perspective
+due to the nature of moderation being manual. This can be labor-intensive and
+error-prone due to the load of censoring content with the thought of multiple students
+and their backgrounds in mind. In an ideal situation, the system should be able to detect
+any chat propagating hate offenses or self-harm and hide it. Based on the strikes against
+the user, the offensive user would be banned from the usergroup. The moderator would
+be responsible for reviewing the user based on the alerts provided by the system. The
+role of the system admin would be to label messages when the system fails in real time.
+Additionally, users can report messages if they do not get flagged by the system, and
+this can be used to re-label and re-train the model.
+Training - Aadarsh LN
+In order to flag the chat messages as inappropriate or not, we are leveraging the
+hateBERT model, which is available on HuggingFace. It was trained on the English BERT
+base uncased model with more than 1 million posts from banned communities in
+Reddit. The model is composed of 0.1B parameters, its precision is FP-32. In order to
+make the model more robust to this use case, we will be retraining it with the dataset
+associated with the Jigsaw-Toxic-Comment-Classification-Challenge and a self-harm
+dataset, which was built using Reddit. The input that will be passed to the model would
+be pre-processed text data. The output consists of two probability scores on a
+continuous range from 0 to 1, where 0 represents a negative class (safe) and 1 represents
+a positive class (detected offensive or self-harm content).
+Serving - Purvansh Arora
+The model serving will be handled by FastAPI to handle async inference requests, which
+will be integrated via Zulip’s web hooks. We are aiming for a <200 ms P99 latency
+execution to ensure the chat functionality remains seamless. The system should be able
+to sustain a peak throughput of 15-20 requests per second (assuming a peak
+concurrency of ~100 active users during active hours). The service will translate raw
+probabilities to a tiered decision matrix. The proposed matrix is: a message with high
+offensive confidence (>0.85) will be hidden, record a strike against the user, and will be
+
+routed to the admin. Messages with medium offensive confidence (0.60-0.85) will
+trigger a warning to the user and flag the message for admin moderation before a strike
+is applied. A message with even a low-medium self-harm confidence (>0.30) will
+immediately escalate the message to the admin, send mental health resources to the
+concerned user, and not remove the message, as that risks isolation of the concerned
+individual. A manual user-reporting mechanism can serve as a fail-safe for edge cases
+and false negatives.
+Data - Rishabh Narayan
+Data :
+●​ Arrival: Intercepts raw user messages at the exact moment of submission.
+●​ Real-time Processing: Cleans the text by removing markdown, standardizing
+emojis, scrubbing PII, and extracting URLs.
+●​ Inference: Probability scores for the cleaned text.
+●​ Routing: Applies moderation if the score is high, queues for admin review if the
+score is medium, or allows the message to keep displaying if the score is low.
+●​ Training Processing: Asynchronously collects human admin decisions and
+messages reported by the users to use as retraining datasets.
+Training Data Details:
+●​ Candidate Window: Pulls data exclusively from a recent one-week period.
+●​ Privacy: Use out-of-the-box LLM to scrub personal data.
+●​ Noise Reduction: Filters out bot notifications, spam, and unresolved admin logs.
+●​ Leakage Prevention: Strips all metadata generated after the message was sent to
+ensure the model only learns from the original text.
+DevOps - Nitish KS
+As part of DevOps, we automate deployments (on Chameleon Cloud), configurations, and
+model training by leveraging Infrastructure as Code (IaC), and CI/CD pipelines.
+Model Freshness Triggers: Model retraining is triggered by 200 new verified flags or a
+weekly fallback schedule.
+Typical Load: The system is scoped for 300 total users, with typical steady-state usage
+of 30–40 concurrent students.
+Peak Load: Peak usage is ~100 online students, generating a maximum load of ~15
+messages/sec.
+Deployment & State: A single VM (4 vCPU/16GB RAM) runs the Zulip app, database, and
+ML inference API in isolated containers. Model retraining dynamically provisions,
+completes the training run, saves the model artifacts, and destroys a temporary VM via
+the CI/CD pipeline.
+
+

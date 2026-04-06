@@ -1,0 +1,136 @@
+AI Moderation
+Feature for
+Zulip
+Team - ChatSentry:
+1. Aadarsh Lakshmi Narasiman (Training) - al9581
+2. Rishabh Narayan (Data) - rn2718
+3. Purvansh Arora (Serving) - pa2757
+4. Nitish KS (DevOps) - nk4277
+
+Introduction
+A chat moderation bot for Zulip with the intended user group as students.
+(Max users: 300)
+The current service has manual moderation of chat content by admins,
+which can be labor-intensive and error-prone.
+In an ideal situation, the system should be able to detect any chat
+propagating hate offenses or self-harm.
+The system helps in the moderation of chats by detecting harmful,
+offensive, and self-harm chats and hiding them.
+The offensive user would be banned from the group by the moderator.
+Any user would be able to report messages when the system fails in real
+time (effectively labelling new data).
+
+Dataset Description
+We are using two datasets in our project which are as follows:
+The jigsaw-toxic-comment-classification-challenge dataset which has a
+size of 27.62 MB (200k rows) sourced from Wikipedia.
+The jigsaw dataset has the following labels represented in one hot
+encoding format:
+toxic
+severe_toxic
+obscene
+threat
+insult
+identity_hate
+
+Dataset Description
+We are using two datasets in our project which are as follows:
+The suicide and depression detection dataset which has a size of 166.9
+MB (230k rows) sourced from Reddit.
+The dataset has the following labels:
+suicide
+non-suicide
+
+Dataset Samples
+
+Jigsaw dataset samples
+
+Suicide and Depression detection dataset samples
+
+Training
+
+In order to flag the chat messages as inappropriate or not, we are leveraging
+the hateBERT model which is available on HuggingFace.
+It was trained on the English BERT base uncased model with more than 1
+million posts from banned communities in Reddit.
+The model is composed of 0.1B parameters, its precision is FP-32.
+In order to make the model more robust to this use case, we will be
+retraining it with the dataset associated with the challenge jigsaw-toxiccomment-classification-challenge and a self-harm dataset which was built
+using reddit.
+The input that will be passed to the model would be pre-processed text
+data.
+The output consists of two probability scores on a continuous range from 0
+to 1, where 0 represents a negative class (safe) and 1 represents a positive
+class (detected offensive or self-harm content).
+
+Serving
+Tech Stack:
+Framework: FastAPI (Python) for asynchronous inference.
+Integration: Direct coupling with Zulip outgoing webhooks.
+Performance Targets:
+Latency: <200 ms (P99) to guarantee "perceived instant" chat delivery.
+Throughput: 15–20 RPS (Requests Per Second).
+Scalability:
+Modeled for a 300-student organization.
+Handles "intermittent/bursty" traffic (Peak concurrency: ~100 active
+users during class hours).
+
+Serving
+
+🔴 High Confidence (Offensive > 0.85)
+
+Action: Auto-Hide Message + Record User Strike.
+Review: Route to Admin Queue.
+Medium Confidence (Offensive 0.60 – 0.85)
+Action: Private Warning to User + Obscure Message.
+Review: Flag for Moderator validation (No strike applied yet).
+Self-Harm Detection (> 0.30)
+Protocol: Do Not Delete (avoids isolation).
+Action: Immediate Admin Alert + DM Mental Health Resources.
+Using a lower threshold to prioritize user safety.
+Fail-Safe Mechanism:
+Manual user reporting enabled for edge cases/false negatives.
+
+🟡
+🛡️
+
+Data Flow
+Arrival: Intercepts raw user messages at the exact moment of
+submission.
+Real-time Processing: Cleans the text by removing markdown,
+standardizing emojis, and extracting URLs.
+Inference: Scores the cleaned text for toxicity using the model.
+Routing: Applies moderation if score is high, queues for admin review
+if score is medium, or allows the message to keep displaying if score is
+low.
+Training Processing: Asynchronously collects human admin decisions
+and messages reported by the users to use as retraining datasets.
+
+Data Flow
+Training Data Details:
+Candidate Window: Pulls data exclusively from a recent one-week
+period.
+Privacy: Use out-of-the-box LLM to scrub personal data.
+Noise Reduction: Filters out bot notifications, spam, and unresolved
+admin logs.
+Leakage Prevention: Strips all metadata generated after the message
+was sent to ensure the model only learns from the original text.
+
+DevOps
+As part of DevOps, we automate deployments(on Chameleon Cloud),
+configurations and model training by leveraging Infrastructure as
+Code (IaC), and CI/CD pipelines.
+Model Freshness Triggers: Model retraining is triggered by 200 new
+verified flags or a weekly fallback schedule.
+Typical Load: The system is scoped for 300 total users, with typical
+steady-state usage of 30–40 concurrent students.
+
+DevOps
+Peak Load: Peak usage is ~100 online students, generating a maximum
+load of ~15 messages/sec.
+Deployment & State: A single VM (4 vCPU/16GB RAM) runs the Zulip
+app, database, and ML inference API in isolated containers. Model
+retraining dynamically provisions and destroys a temporary VM via the
+CI/CD pipeline, with all user uploads securely routed to an S3 bucket.
+
+

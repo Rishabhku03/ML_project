@@ -6,15 +6,12 @@ Data Docs HTML reports are generated/uploaded to MinIO.
 Run: pytest tests/e2e/test_03_data_quality/test_quality_gates.py -v -m data_quality
 """
 
-import io
 import logging
 
 import pandas as pd
 import pytest
 
 from src.data.compile_training_data import apply_quality_gate
-from src.utils.config import config
-from src.utils.minio_client import get_minio_client
 
 logger = logging.getLogger(__name__)
 
