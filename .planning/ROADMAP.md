@@ -71,11 +71,11 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. High-level data design document exists with schemas, data repositories, and data flow diagrams
   2. All pipeline parameters (paths, chunk sizes, API keys, bucket names) are configurable via YAML — no hardcoded values
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: Data design document (schemas, repositories, flow diagrams)
-- [ ] 04-02: YAML configuration extraction for all pipeline parameters
+- [ ] 04-01: Data design document — schemas, repositories, Mermaid flow diagrams, API endpoints, architectural decisions (DESIGN-01)
+- [ ] 04-02: YAML config extraction — pipeline.yaml + Config integration + replace hardcoded values in 3 scripts (CONFIG-01)
 
 ## Progress
 
