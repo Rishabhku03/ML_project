@@ -24,7 +24,7 @@ class LabelRequest(BaseModel):
     is_suicide: bool = False
 
 
-@router.get("/dashboard", response_class=HTMLResponse)
+@router.get("/dashboard", response_class=HTMLResponse, include_in_schema=False)
 async def dashboard(request: Request, page: int = Query(1, ge=1)):
     """Render the labeling dashboard with unlabeled live messages."""
     limit = 20

@@ -76,6 +76,9 @@ def apply_quality_gate(df: pd.DataFrame) -> pd.DataFrame:
     """
     initial_count = len(df)
 
+    if initial_count == 0:
+        return df
+
     # Remove #ERROR! duplicates (DATA_ISSUES.md Issue 4)
     df = df[~df["cleaned_text"].str.contains(config.QUALITY_ERROR_PATTERN, na=False)]
 
@@ -298,7 +301,8 @@ def compile_initial() -> None:
             for _, row in df.iterrows():
                 cur.execute(
                     """INSERT INTO messages (user_id, text, cleaned_text, is_suicide, is_toxicity, source)
-                       VALUES (%s, %s, %s, %s, %s, %s)""",
+                       VALUES (%s, %s, %s, %s, %s, %s)
+                       RETURNING id""",
                     (
                         "00000000-0000-0000-0000-000000000001",
                         row["text"],
@@ -307,6 +311,12 @@ def compile_initial() -> None:
                         bool(row.get("is_toxicity", False)),
                         "real",
                     ),
+                )
+                msg_id = cur.fetchone()[0]
+                cur.execute(
+                    """INSERT INTO moderation (message_id, action, confidence, source)
+                       VALUES (%s, %s, %s, %s)""",
+                    (msg_id, "labeled", 1.0, "real"),
                 )
         conn.commit()
         logger.info("Bulk load complete")

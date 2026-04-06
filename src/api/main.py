@@ -204,6 +204,17 @@ def _flush_to_minio() -> None:
         logger.exception("Failed to flush cleaned data to MinIO")
 
 
+@app.get("/", include_in_schema=False)
+async def root():
+    return {
+        "service": "ChatSentry API",
+        "version": "0.1.0",
+        "docs": "/docs",
+        "health": "/health",
+        "dashboard": "/dashboard",
+    }
+
+
 @app.get("/health")
 async def health():
     return {"status": "ok"}

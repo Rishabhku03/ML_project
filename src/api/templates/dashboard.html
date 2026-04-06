@@ -6,6 +6,8 @@
 <h1>Data Labeling Dashboard</h1>
 <p>Showing unlabeled live messages (source='real'). Check the boxes and click Save to label.</p>
 
+<div id="toast" style="display:none; padding:10px 20px; margin:10px 0; border-radius:4px; font-weight:bold;"></div>
+
 {% if messages %}
 <table>
     <thead>
@@ -21,8 +23,8 @@
     <tbody>
         {% for msg in messages %}
         <tr>
-            <td class="message-text" title="{{ msg.text }}">{{ msg.text[:100] }}{% if msg.text|length > 100 %}...{% endif %}</td>
-            <td class="message-text" title="{{ msg.cleaned_text }}">{{ msg.cleaned_text[:100] if msg.cleaned_text else '' }}{% if msg.cleaned_text and msg.cleaned_text|length > 100 %}...{% endif %}</td>
+            <td class="message-text">{{ msg.text }}</td>
+            <td class="message-text">{{ msg.cleaned_text if msg.cleaned_text else '' }}</td>
             <td>{{ msg.created_at.strftime('%Y-%m-%d %H:%M') if msg.created_at else '' }}</td>
             <td class="checkbox-cell">
                 <input type="checkbox" id="toxic_{{ msg.id }}" name="toxic_{{ msg.id }}">
@@ -49,10 +51,20 @@
 </div>
 
 <script>
+function showToast(message, isError) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.style.display = 'block';
+    toast.style.background = isError ? '#ffebee' : '#e8f5e9';
+    toast.style.color = isError ? '#c62828' : '#2e7d32';
+    toast.style.border = isError ? '1px solid #c62828' : '1px solid #2e7d32';
+    setTimeout(() => { toast.style.display = 'none'; }, 2000);
+}
+
 async function saveLabel(messageId) {
     const isToxic = document.getElementById('toxic_' + messageId).checked;
     const isSuicide = document.getElementById('suicide_' + messageId).checked;
-    
+
     try {
         const response = await fetch('/dashboard/label', {
             method: 'POST',
@@ -63,15 +75,15 @@ async function saveLabel(messageId) {
                 is_suicide: isSuicide
             })
         });
-        
+
         if (response.ok) {
-            alert('Label saved!');
-            location.reload();
+            showToast('Label saved!', false);
+            setTimeout(() => location.reload(), 2000);
         } else {
-            alert('Error saving label');
+            showToast('Error saving label', true);
         }
     } catch (error) {
-        alert('Error: ' + error.message);
+        showToast('Error: ' + error.message, true);
     }
 }
 </script>
