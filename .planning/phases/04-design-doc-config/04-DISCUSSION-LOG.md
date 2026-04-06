@@ -3,70 +3,98 @@
 > **Audit trail only.** Do not use as input to planning, research, or execution agents.
 > Decisions are captured in CONTEXT.md — this log preserves the alternatives considered.
 
-**Date:** 2026-04-04
+**Date:** 2026-04-06
 **Phase:** 04-design-doc-config
-**Areas discussed:** Design document scope, YAML config file structure, Config vs env var boundary, Config loading strategy
+**Areas discussed:** Design doc scope, Diagram format, Config integration strategy, Config file scope
 
 ---
 
-## Design Document Scope
+## Design doc scope
 
 | Option | Description | Selected |
 |--------|-------------|----------|
-| Comprehensive | All 4 PostgreSQL tables + all columns, types, constraints. MinIO bucket layouts with object naming. Both data flow paths. Multiple Mermaid diagrams. | ✓ |
-| Focused | Core tables (messages, moderation) with key columns only. Single data flow diagram. MinIO buckets mentioned but not full object naming. | |
-| Minimal | Just the high-level data flow diagram. Schemas reference existing SQL init file. MinIO buckets as bullet list. | |
+| Data pipeline only | Document YOUR components: ingestion, TextCleaner, batch pipeline, MinIO/PostgreSQL schemas. Skip ML training and serving. | ✓ |
+| Full system | Include ML training (Aadarsh), model serving (Purvansh), and DevOps (Nitish) even though you don't own those. | |
 
-**User's choice:** Comprehensive
-**Notes:** All 4 tables documented fully. MinIO object naming conventions included. Multiple Mermaid diagrams for real-time, batch, and overview. Reference existing SQL init file as source of truth.
+**User's choice:** Data pipeline only
+**Notes:** Scope limited to data specialist's domain. Other team members document their own components.
 
 ---
 
-## YAML Config File Structure
+## Diagram format
 
 | Option | Description | Selected |
 |--------|-------------|----------|
-| Single config.yaml | One file with sections: database, minio, pipeline, traffic, synthetic_generation | |
-| Split by concern | Separate files: infra.yaml (db, minio), pipeline.yaml (chunk sizes, thresholds, split ratios), generation.yaml (HF model, RPS, retry config) | ✓ |
-| Single with deep nesting | Nested hierarchy: config.yaml with top-level keys grouping related settings | |
+| Mermaid in markdown | Embed Mermaid diagrams directly in the design doc. Version-controllable, renders on GitHub. | ✓ |
+| Static images | Export diagrams as PNG/SVG files. Polished but harder to maintain. | |
+| ASCII/text diagrams | Plain text flow diagrams in markdown. Simplest but less visual. | |
 
-**User's choice:** Split by concern (3 files)
-**Follow-up:** Grouping confirmed as infra / pipeline / generation
+**User's choice:** Mermaid in markdown
+**Notes:** Version-controllable, renders on GitHub, easy to update. Demo video can show rendered diagram.
 
 ---
 
-## Config vs Env Var Boundary
+## Config integration strategy
 
 | Option | Description | Selected |
 |--------|-------------|----------|
-| YAML for all non-secrets | All non-secret parameters go to YAML. Secrets stay as env vars only. | ✓ |
-| YAML for tunables only | Only pipeline tunables in YAML. Everything else stays hardcoded. | |
-| Everything in YAML | Everything in YAML including secrets. Use .env or vault for sensitive values. | |
+| YAML loads into Config dataclass | pipeline.yaml values populate Config fields with env vars as overrides. Single config = Config() call. | ✓ |
+| Separate YAML config class | New PipelineConfig class that loads from pipeline.yaml independently. | |
+| YAML replaces Config entirely | Remove frozen dataclass, all config comes from pipeline.yaml. | |
 
-**User's choice:** YAML for all non-secrets
-**Notes:** Chunk sizes, quality thresholds, split ratios, RPS, batch sizes, retry config all move to YAML. DATABASE_URL, MINIO creds, HF_TOKEN stay as env vars.
+**User's choice:** YAML loads into Config dataclass
+**Notes:** YAML is source of truth for defaults, env vars for deployment overrides. Single Config() call everywhere.
 
 ---
 
-## Config Loading Strategy
+## Config file scope
 
 | Option | Description | Selected |
 |--------|-------------|----------|
-| YAML-first, env var overrides | YAML loads first, env vars override specific keys. Frozen dataclass replaced. | ✓ |
-| Merge into existing Config | Keep frozen dataclass. Add load_yaml_config() that merges. Env vars take precedence. | |
-| Full replacement | Replace config.py entirely with new module. | |
+| All pipeline parameters | Extract CHUNK_SIZE, bucket names, quality thresholds, TextCleaner steps, split ratios, RPS targets, version format. Complete CONFIG-01 compliance. | |
+| Tunable params only | Keep truly-fixed values as Python constants. Only configure things a user might change. | ✓ |
 
-**User's choice:** YAML-first, env var overrides
-**Notes:** Frozen dataclass replaced with mutable class. YAML loads first, env vars override secrets/deployment. Existing `from src.utils.config import config` pattern preserved.
+**User's choice:** Tunable params only
+**Notes:** Column names, UUID format, CSV filenames, version format, TextCleaner step order stay as Python constants. Chunk size, quality thresholds, split ratios, bucket names, RPS target go to YAML.
+
+---
+
+## YAML location
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| config/pipeline.yaml | Matches what Phase 5 CONTEXT.md already references. | ✓ |
+| src/config/pipeline.yaml | Inside src/ alongside the code. | |
+
+**User's choice:** config/pipeline.yaml
+**Notes:** Aligns with Phase 5 D-05 reference.
+
+---
+
+## Doc sections
+
+| Option | Description | Selected |
+|--------|-------------|----------|
+| Schemas + Repositories + Flow diagrams | DESIGN-01 compliance: PostgreSQL schema docs, MinIO bucket structure, data flow diagrams, config overview. | |
+| Add API endpoints + decisions | Above + document FastAPI endpoints and key architectural decisions. | ✓ |
+
+**User's choice:** Add API endpoints + decisions
+**Notes:** Design doc includes API endpoint documentation and architectural decision rationale (good for demo talking points).
 
 ---
 
 ## Agent's Discretion
 
-Areas where user deferred to agent's judgment:
-- YAML loading library choice (OmegaConf vs pydantic-settings vs plain yaml.safe_load)
-- Config validation approach (type checking on load vs lazy)
-- Config file path resolution strategy
-- Whether to generate example configs for team members
-- Inline comment style in YAML files
+- YAML parsing library choice (PyYAML vs ruamel.yaml)
+- Whether to add `--config` CLI flag to pipeline scripts
+- Design document filename and location
+- Whether TextCleaner step enable/disable should be YAML-configurable
+- How to handle missing YAML file (use defaults vs error)
 
+## Deferred Ideas
+
+- Parquet format conversion — future consideration
+- Config validation schema — ensures bad config values fail fast
+- Config hot-reloading — not needed for batch pipeline
+- Environment-specific YAML files — overkill for single-VM deployment
+- Automated config documentation generation
