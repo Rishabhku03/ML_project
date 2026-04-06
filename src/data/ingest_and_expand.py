@@ -18,7 +18,7 @@ from src.utils.minio_client import get_minio_client
 
 logger = logging.getLogger(__name__)
 
-CHUNK_SIZE = 50_000  # D-06
+CHUNK_SIZE = config.CHUNK_SIZE  # From pipeline.yaml (D-04, D-07)
 CSV_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "combined_dataset.csv")
 
 

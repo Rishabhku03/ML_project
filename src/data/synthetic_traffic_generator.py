@@ -24,7 +24,7 @@ from src.utils.config import config
 
 logger = logging.getLogger(__name__)
 
-TARGET_RPS = 15
+TARGET_RPS = config.RPS_TARGET  # From pipeline.yaml (D-04, D-07)
 
 
 async def load_csv_messages(filepath: str) -> list[str]:

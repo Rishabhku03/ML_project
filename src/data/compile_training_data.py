@@ -77,13 +77,13 @@ def apply_quality_gate(df: pd.DataFrame) -> pd.DataFrame:
     initial_count = len(df)
 
     # Remove #ERROR! duplicates (DATA_ISSUES.md Issue 4)
-    df = df[~df["cleaned_text"].str.contains("#ERROR!", na=False)]
+    df = df[~df["cleaned_text"].str.contains(config.QUALITY_ERROR_PATTERN, na=False)]
 
-    # Filter texts below 10 chars (DATA_ISSUES.md Issue 5)
-    df = df[df["cleaned_text"].str.len() >= 10]
+    # Filter texts below min chars (DATA_ISSUES.md Issue 5)
+    df = df[df["cleaned_text"].str.len() >= config.QUALITY_MIN_TEXT_LENGTH]
 
-    # Cap texts above 5000 chars (DATA_ISSUES.md Issue 5)
-    df["cleaned_text"] = df["cleaned_text"].str[:5000]
+    # Cap texts above max chars (DATA_ISSUES.md Issue 5)
+    df["cleaned_text"] = df["cleaned_text"].str[: config.QUALITY_MAX_TEXT_LENGTH]
 
     removed = initial_count - len(df)
     logger.info(
@@ -121,7 +121,7 @@ def select_output_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 def stratified_split(
     df: pd.DataFrame,
-    random_state: int = 42,
+    random_state: int | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Stratified 70/15/15 train/val/test split (BATCH-05, D-12 through D-14).
 
@@ -130,11 +130,13 @@ def stratified_split(
 
     Args:
         df: DataFrame with 'is_suicide' and 'is_toxicity' columns.
-        random_state: Random seed for reproducibility.
+        random_state: Random seed for reproducibility (default from config).
 
     Returns:
         Tuple of (train_df, val_df, test_df).
     """
+    if random_state is None:
+        random_state = config.RANDOM_STATE
     df = df.copy()
 
     # Create combined stratification label (4 classes, D-13)
@@ -152,7 +154,7 @@ def stratified_split(
     # Step 1: 70% train, 30% temp (D-14)
     train_df, temp_df = train_test_split(
         df,
-        test_size=0.30,
+        test_size=1.0 - config.TRAIN_SPLIT_RATIO,  # 0.30 when ratio is 0.70
         stratify=df["label_combo"],
         random_state=random_state,
     )
@@ -160,7 +162,8 @@ def stratified_split(
     # Step 2: split 30% evenly into val (15%) and test (15%)
     val_df, test_df = train_test_split(
         temp_df,
-        test_size=0.50,
+        test_size=config.TEST_SPLIT_RATIO
+        / (config.VAL_SPLIT_RATIO + config.TEST_SPLIT_RATIO),  # 0.50 for 15/15
         stratify=temp_df["label_combo"],
         random_state=random_state,
     )
