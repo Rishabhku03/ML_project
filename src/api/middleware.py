@@ -266,7 +266,7 @@ class TextCleaningMiddleware(BaseHTTPMiddleware):
             client = get_minio_client()
             lines = "\n".join(json.dumps(row) for row in self._minio_buffer)
             data = lines.encode("utf-8")
-            object_name = f"cleaned/batch-{uuid.uuid4()}.jsonl"
+            object_name = f"zulip-raw-messages/cleaned/batch-{uuid.uuid4()}.jsonl"
 
             client.put_object(
                 bucket_name=config.BUCKET_RAW,

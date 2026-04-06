@@ -244,7 +244,7 @@ def _generate_data_docs_html(result, suite: ExpectationSuite) -> str:
     return html
 
 
-def upload_data_docs(html: str, bucket: str = "chatsentry-data") -> str:
+def upload_data_docs(html: str, bucket: str = "proj09_Data") -> str:
     """Upload Data Docs HTML to MinIO (D-04).
 
     Args:
@@ -262,7 +262,7 @@ def upload_data_docs(html: str, bucket: str = "chatsentry-data") -> str:
     client = get_minio_client()
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
-    object_name = f"data-quality/report-{timestamp}.html"
+    object_name = f"data-quality-report/report-{timestamp}.html"
 
     html_bytes = html.encode("utf-8")
     client.put_object(

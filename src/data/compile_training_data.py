@@ -218,7 +218,7 @@ def upload_snapshot(
     splits = {"train": train_df, "val": val_df, "test": test_df}
     for split_name, split_df in splits.items():
         csv_bytes = split_df.to_csv(index=False).encode("utf-8")
-        object_name = f"{version}/{split_name}.csv"
+        object_name = f"zulip-training-data/{version}/{split_name}.csv"
 
         client.put_object(
             bucket_name=bucket,
@@ -256,12 +256,10 @@ def compile_initial() -> None:
     cleaner = TextCleaner()
 
     # Read CSV chunks from MinIO
-    logger.info(
-        "Reading CSV chunks from MinIO zulip-raw-messages/real/combined_dataset/"
-    )
+    logger.info("Reading CSV chunks from S3 zulip-raw-messages/real/combined_dataset/")
     objects = client.list_objects(
         config.BUCKET_RAW,
-        prefix="real/combined_dataset/",
+        prefix="zulip-raw-messages/real/combined_dataset/",
         recursive=True,
     )
 

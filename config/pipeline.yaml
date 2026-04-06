@@ -17,8 +17,8 @@ split:
   random_state: 42             # Reproducibility seed
 
 buckets:
-  raw: chatsentry-data           # Single bucket for all data (prefixed by type)
-  training: chatsentry-data      # Same bucket — prefixes keep data organized
+  raw: proj09_Data                 # Chameleon S3 bucket (shared)
+  training: proj09_Data            # Same bucket — prefixes separate data
 
 traffic:
   rps_target: 15               # Requests per second for synthetic traffic generator

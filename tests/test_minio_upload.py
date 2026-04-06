@@ -2,7 +2,7 @@
 
 
 def test_s3_bucket_accessible(minio_client):
-    assert minio_client.bucket_exists("chatsentry-data")
+    assert minio_client.bucket_exists("proj09_Data")
 
 
 def test_ingest_script_importable():

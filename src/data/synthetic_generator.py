@@ -176,7 +176,7 @@ def generate_synthetic_data(
     writer.writerows(all_rows)
 
     csv_bytes = output.getvalue().encode("utf-8")
-    object_name = "synthetic/synthetic_data.csv"
+    object_name = "zulip-raw-messages/synthetic/synthetic_data.csv"
     minio.put_object(
         bucket_name=bucket,
         object_name=object_name,

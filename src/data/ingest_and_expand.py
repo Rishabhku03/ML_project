@@ -55,7 +55,7 @@ def ingest_csv(csv_path: str = CSV_PATH, bucket: str = config.BUCKET_RAW) -> int
     chunk_count = 0
     for i, chunk in enumerate(chunk_iter):
         csv_bytes = chunk.to_csv(index=False).encode("utf-8")
-        object_name = f"real/combined_dataset/chunk_{i:03d}.csv"
+        object_name = f"zulip-raw-messages/real/combined_dataset/chunk_{i:03d}.csv"
 
         client.put_object(
             bucket_name=bucket,

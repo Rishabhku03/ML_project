@@ -91,8 +91,8 @@ class Config:
     HF_TOKEN: str = ""
 
     # --- Pipeline tunables (from YAML, per D-07) ---
-    BUCKET_RAW: str = "chatsentry-data"
-    BUCKET_TRAINING: str = "chatsentry-data"
+    BUCKET_RAW: str = "proj09_Data"
+    BUCKET_TRAINING: str = "proj09_Data"
     CHUNK_SIZE: int = 50_000
     QUALITY_MIN_TEXT_LENGTH: int = 10
     QUALITY_MAX_TEXT_LENGTH: int = 5_000
