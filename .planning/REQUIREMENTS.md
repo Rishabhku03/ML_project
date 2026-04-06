@@ -40,8 +40,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Design & Config
 
-- [ ] **DESIGN-01**: High-level data design document with schemas, data repositories, and data flow diagrams
-- [ ] **CONFIG-01**: Configurable pipeline parameters via YAML (not hardcoded)
+- [x] **DESIGN-01**: High-level data design document with schemas, data repositories, and data flow diagrams
+- [x] **CONFIG-01**: Configurable pipeline parameters via YAML (not hardcoded)
 
 ## v2 Requirements
 
@@ -97,8 +97,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BATCH-03 | Phase 3 | Pending |
 | BATCH-04 | Phase 3 | Pending |
 | BATCH-05 | Phase 3 | Pending |
-| DESIGN-01 | Phase 4 | Pending |
-| CONFIG-01 | Phase 4 | Pending |
+| DESIGN-01 | Phase 4 | Complete |
+| CONFIG-01 | Phase 4 | Complete |
 
 **Coverage:**
 - v1 requirements: 21 total

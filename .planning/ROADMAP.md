@@ -75,7 +75,7 @@ Plans:
 
 Plans:
 - [x] 04-01: Data design document — schemas, repositories, Mermaid flow diagrams, API endpoints, architectural decisions (DESIGN-01)
-- [ ] 04-02: YAML config extraction — pipeline.yaml + Config integration + replace hardcoded values in 3 scripts (CONFIG-01)
+- [x] 04-02: YAML config extraction — pipeline.yaml + Config integration + replace hardcoded values in 3 scripts (CONFIG-01)
 
 ## Progress
 
