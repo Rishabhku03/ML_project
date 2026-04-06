@@ -180,3 +180,151 @@ ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 \
 # 21. View GE HTML report (browser)
 # ============================================================
 # Open: http://129.114.26.207:8080
+
+# ============================================================
+# 22. Fix HF_TOKEN in .env and restart containers
+# ============================================================
+ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 \
+  "cd /home/cc/chatsentry/docker && \
+   printf 'HF_TOKEN=hf_REAL_TOKEN_HERE\nS3_ACCESS_KEY=KEY\nS3_SECRET_KEY=SECRET\nS3_ENDPOINT=chi.tacc.chameleoncloud.org:7480\n' > .env && \
+   docker compose down && docker compose up -d"
+
+# ============================================================
+# 23. View S3 bucket contents via Horizon GUI
+# ============================================================
+# Open: https://chi.tacc.chameleoncloud.org
+# Navigate: Object Store → Containers → proj09_Data
+
+# ============================================================
+# 24. View S3 bucket contents via CLI (inside API container)
+# ============================================================
+ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 "docker exec api python3 -c \"
+from minio import Minio
+import os
+c = Minio(os.environ['S3_ENDPOINT'], os.environ['MINIO_ACCESS_KEY'], os.environ['MINIO_SECRET_KEY'], secure=True, region='')
+for obj in c.list_objects('proj09_Data', recursive=True):
+    print(f'{obj.object_name} ({obj.size/1024/1024:.1f} MB)')
+\""
+
+# ============================================================
+# 25. View GE report in Adminer (browser)
+# ============================================================
+# Open: http://129.114.26.207:5050
+# Login: PostgreSQL / postgres / user / chatsentry_pg / chatsentry
+
+# ============================================================
+# 26. Send manual test messages to API
+# ============================================================
+# Toxic
+curl -s -X POST http://129.114.26.207:8000/messages \
+  -H 'Content-Type: application/json' \
+  -d '{"text": "You are absolutely worthless", "user_id": "manual-toxic"}'
+
+# Suicide
+curl -s -X POST http://129.114.26.207:8000/messages \
+  -H 'Content-Type: application/json' \
+  -d '{"text": "I dont want to live anymore", "user_id": "manual-suicide"}'
+
+# ============================================================
+# 27. Synthetic data — TEST mode (single message to API)
+# ============================================================
+# One toxic message
+ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 \
+  "docker exec api python3 -m src.data.synthetic_generator --mode test --label toxic"
+
+# One suicide message
+ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 \
+  "docker exec api python3 -m src.data.synthetic_generator --mode test --label suicide"
+
+# One benign message (random if no --label)
+ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 \
+  "docker exec api python3 -m src.data.synthetic_generator --mode test --label benign"
+
+# ============================================================
+# 28. Synthetic data — TEST mode (traffic simulation)
+# ============================================================
+# 10 messages, 2s apart, random labels
+ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 \
+  "docker exec api python3 -m src.data.synthetic_generator --mode test --count 10"
+
+# 50 toxic messages, 1s apart
+ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 \
+  "docker exec api python3 -m src.data.synthetic_generator --mode test --count 50 --label toxic --interval 1"
+
+# 100 messages, 3s apart, random labels
+ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 \
+  "docker exec api python3 -m src.data.synthetic_generator --mode test --count 100 --interval 3"
+
+# ============================================================
+# 29. Synthetic data — TRAINING mode (labeled CSV to S3)
+# ============================================================
+# Generate 30 rows (small test)
+ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 \
+  "docker exec api python3 -m src.data.synthetic_generator --mode training --count 30"
+
+# Generate 10,000 rows (full)
+ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 \
+  "docker exec api python3 -m src.data.synthetic_generator --mode training --count 10000"
+
+# ============================================================
+# 30. Verify synthetic data CSV in S3
+# ============================================================
+ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 "docker exec api python3 -c \"
+from minio import Minio
+import os, io, pandas as pd
+c = Minio(os.environ['S3_ENDPOINT'], os.environ['MINIO_ACCESS_KEY'], os.environ['MINIO_SECRET_KEY'], secure=True, region='')
+obj = c.get_object('proj09_Data', 'zulip-raw-messages/synthetic/synthetic_data.csv')
+df = pd.read_csv(io.BytesIO(obj.read()))
+obj.close()
+print(f'Rows: {len(df)}')
+print(df[['is_suicide','is_toxicity']].value_counts())
+print(df.head(5).to_string())
+\""
+
+# ============================================================
+# 31. Check for duplicate messages in PostgreSQL
+# ============================================================
+ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 \
+  "docker exec postgres psql -U user -d chatsentry -c \"
+SELECT COUNT(*) as total, COUNT(DISTINCT text) as unique_texts,
+       COUNT(*) - COUNT(DISTINCT text) as duplicates FROM messages;
+\""
+
+# ============================================================
+# 32. Check message creation timeline
+# ============================================================
+ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 \
+  "docker exec postgres psql -U user -d chatsentry -c \"
+SELECT DATE_TRUNC('minute', created_at) as minute, COUNT(*)
+FROM messages GROUP BY minute ORDER BY minute;
+\""
+
+# ============================================================
+# 33. Full end-to-end pipeline test
+# ============================================================
+# Step 1: Upload CSV
+ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 \
+  "docker exec api rm -rf /tmp/combined_dataset.csv && \
+   docker cp /home/cc/chatsentry/combined_dataset.csv/combined_dataset.csv api:/tmp/combined_dataset.csv"
+
+# Step 2: Ingest
+ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 \
+  "docker exec api python3 -m src.data.ingest_and_expand /tmp/combined_dataset.csv"
+
+# Step 3: Compile training data
+ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 \
+  "docker exec postgres psql -U user -d chatsentry -c 'TRUNCATE messages, flags, moderation, users CASCADE;'"
+ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 \
+  "docker exec -d api python3 -c \"import logging; logging.basicConfig(level=logging.INFO); from src.data.compile_training_data import compile_initial; compile_initial()\""
+
+# Step 4: Generate synthetic data
+ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 \
+  "docker exec api python3 -m src.data.synthetic_generator --mode training --count 100"
+
+# Step 5: Send test messages via API
+ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 \
+  "docker exec api python3 -m src.data.synthetic_generator --mode test --count 5 --interval 1"
+
+# Step 6: Verify everything
+ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 \
+  "docker exec postgres psql -U user -d chatsentry -c 'SELECT COUNT(*) FROM messages;'"
