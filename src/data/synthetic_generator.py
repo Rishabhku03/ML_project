@@ -18,6 +18,8 @@ import csv
 import io
 import json
 import logging
+import random
+import time
 from typing import Optional
 
 import requests
@@ -290,13 +292,19 @@ if __name__ == "__main__":
         "--count",
         type=int,
         default=TARGET_TOTAL,
-        help="Number of rows to generate (training mode, default: 10000)",
+        help="Rows (training) or requests (test), default: 10000/1",
     )
     parser.add_argument(
         "--label",
         choices=["toxic", "suicide", "benign"],
         default=None,
         help="Label type for test mode (default: random)",
+    )
+    parser.add_argument(
+        "--interval",
+        type=float,
+        default=2.0,
+        help="Seconds between requests in test mode (default: 2.0)",
     )
     parser.add_argument(
         "--api-url",
@@ -314,5 +322,19 @@ if __name__ == "__main__":
         counts = generate_training_data(target_total=args.count, bucket=args.bucket)
         logger.info("Done: %s", counts)
     elif args.mode == "test":
-        result = generate_test_message(label_type=args.label, api_url=args.api_url)
-        print(json.dumps(result, indent=2))
+        results = []
+        for i in range(args.count):
+            label = args.label or random.choice(["toxic", "suicide", "benign"])
+            result = generate_test_message(label_type=label, api_url=args.api_url)
+            results.append(result)
+            logger.info(
+                "[%d/%d] %s: %s",
+                i + 1,
+                args.count,
+                label,
+                result["text"][:60],
+            )
+            if i < args.count - 1:
+                time.sleep(args.interval)
+
+        print(json.dumps(results, indent=2))
