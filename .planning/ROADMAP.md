@@ -74,7 +74,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: Data design document — schemas, repositories, Mermaid flow diagrams, API endpoints, architectural decisions (DESIGN-01)
+- [x] 04-01: Data design document — schemas, repositories, Mermaid flow diagrams, API endpoints, architectural decisions (DESIGN-01)
 - [ ] 04-02: YAML config extraction — pipeline.yaml + Config integration + replace hardcoded values in 3 scripts (CONFIG-01)
 
 ## Progress
@@ -84,7 +84,7 @@ Plans:
 | 1. Infrastructure & Ingestion | 4/5 | Gap closure | - |
 | 2. Real-time Processing | 0/3 | Planning complete | - |
 | 3. Batch Pipeline | 0/1 | Planning complete | - |
-| 4. Design Doc & Config | 0/2 | Not started | - |
+| 4. Design Doc & Config | 1/2 | In Progress|  |
 | 5. Great Expectations DQ | 0/0 | Not started | - |
 
 ### Phase 5: Integrate Great Expectations data quality framework
@@ -92,7 +92,7 @@ Plans:
 **Goal:** Replace hand-coded quality gate with GE Expectation Suite — training data validated before MinIO upload, Data Docs generated for quality reporting
 **Requirements**: QUALITY-01, QUALITY-02, CONFIG-01
 **Depends on:** Phase 4 (for pipeline.yaml config — thresholds have defaults)
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
 - [ ] 05-01: Create GE validation module + tests (data_quality.py, test_data_quality.py)
