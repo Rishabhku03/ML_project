@@ -24,10 +24,11 @@ Deliver a self-contained, reproducible data pipeline with versioned training dat
 - **BATCH-03**: Versioned snapshots in MinIO with timestamp tags — validated in Phase 03
 - **BATCH-04**: Post-submission metadata stripped before export — validated in Phase 03
 - **BATCH-05**: Stratified 70/15/15 split by is_suicide and is_toxicity labels — validated in Phase 03
+- **DESIGN-01**: Data design document with schemas, data repositories, and data flow diagrams — validated in Phase 04
+- **CONFIG-01**: YAML-backed Config dataclass with env var override and pipeline script integration — validated in Phase 04
 
 ### Active
 
-- [ ] **DATA-01**: High-level data design document with schemas, data repositories, and data flow diagrams
 - [ ] **DATA-04**: Synthetic data generator that hits dummy FastAPI endpoints with realistic Zulip-style messages
 - [ ] **DATA-05**: Online feature computation — real-time text preprocessing (markdown removal, emoji standardization, URL extraction) integrate-able with serving
 
@@ -88,4 +89,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-04 after Phase 03 completion (batch pipeline — training data compiler with quality gates, temporal leakage prevention, stratified splits)*
+*Last updated: 2026-04-06 after Phase 04 completion (design doc + YAML config — data design document with Mermaid diagrams, 10 tunable pipeline params extracted to config/pipeline.yaml)*
