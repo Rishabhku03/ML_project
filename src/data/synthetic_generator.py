@@ -103,6 +103,11 @@ def _parse_numbered_list(text: str) -> list[str]:
         line = line.strip()
         if not line:
             continue
+        # Remove "Example N:" prefix if model repeats examples
+        if line.lower().startswith("example "):
+            colon_pos = line.find(":")
+            if colon_pos > 0:
+                line = line[colon_pos + 1 :].strip()
         # Remove numbering prefix (e.g., "1. ", "2. ", etc.)
         if line and line[0].isdigit():
             dot_pos = line.find(".")
