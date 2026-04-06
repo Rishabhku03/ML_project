@@ -86,6 +86,7 @@ Plans:
 | 3. Batch Pipeline | 0/1 | Planning complete | - |
 | 4. Design Doc & Config | 1/2 | In Progress|  |
 | 5. Great Expectations DQ | 0/0 | Not started | - |
+| 6. E2E Production Testing | 0/5 | Planning complete | - |
 
 ### Phase 5: Integrate Great Expectations data quality framework
 
@@ -97,3 +98,17 @@ Plans:
 Plans:
 - [ ] 05-01: Create GE validation module + tests (data_quality.py, test_data_quality.py)
 - [ ] 05-02: Integrate GE into batch pipeline (compile_training_data.py, updated tests)
+
+### Phase 6: End-to-end production testing — deploy pipeline locally, replicate real deployment scenarios, data flow tests, data quality tests, environment validation
+
+**Goal:** Create a layered E2E test suite that validates the ChatSentry data pipeline works correctly in a production-like Docker environment, including failure scenarios
+**Requirements**: E2E-INFRA, E2E-FLOW, E2E-QUALITY, E2E-CHAOS, E2E-PIPELINE
+**Depends on:** Phase 5
+**Plans:** 5 plans
+
+Plans:
+- [ ] 06-01: Test infrastructure & fixtures (conftest.py, test_data.py, pytest markers)
+- [ ] 06-02: Layer 1 — Infrastructure tests (Docker service health checks)
+- [ ] 06-03: Layer 2 — Data flow tests (ingestion, cleaning, compilation, splitting)
+- [ ] 06-04: Layer 3+4 — Data quality + chaos tests (GE validation, failure injection)
+- [ ] 06-05: Layer 5 — Full pipeline tests (end-to-end, idempotency, chaos-during-run)
