@@ -328,3 +328,104 @@ ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 \
 # Step 6: Verify everything
 ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 \
   "docker exec postgres psql -U user -d chatsentry -c 'SELECT COUNT(*) FROM messages;'"
+
+# ============================================================
+# 34. Text cleaning test (10 different input types)
+# ============================================================
+ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 'docker exec api python3 -c "
+import requests
+BASE = \"http://localhost:8000\"
+tests = [
+    (\"html\", \"<b>I feel so sad</b> and <i>nobody cares</i> about me\"),
+    (\"markdown\", \"**I hate everything** and _nobody likes me_ and ~I give up~\"),
+    (\"urls\", \"Check this out https://example.com/sad and http://blog.com/post/123\"),
+    (\"emojis\", \"I am so sad \U0001f622 and crying \U0001f62d nobody helps \U0001f614\"),
+    (\"pii\", \"Contact me at john@example.com or call 555-123-4567 I need help\"),
+    (\"username\", \"Hey @alice and @bob123 you guys are the worst\"),
+    (\"unicode\", \"I feel like caf\\xc3\\xa9 life is meaningless\"),
+    (\"mixed\", \"<p>Email test@test.com</p> https://sad.com \U0001f622 call 123-456-7890\"),
+    (\"code\", \"\\x60\\x60\\x60python\\nprint(hi)\\x60\\x60\\x60 nobody understands me\"),
+    (\"all\", \"<b>@admin</b> https://site.com \U0001f62d admin@test.com 555-999-0000 **help me**\"),
+]
+for label, text in tests:
+    resp = requests.post(f\"{BASE}/messages\", json={\"text\": text, \"user_id\": f\"clean-{label}\"})
+    d = resp.json()
+    print(f\"[{label}] RAW: {d[\"raw_text\"][:50]}\")
+    print(f\"[{label}] CLEANED: {d[\"cleaned_text\"][:50]}\")
+"'
+
+# ============================================================
+# 35. Flush live data to S3
+# ============================================================
+curl -s -X POST http://129.114.26.207:8000/admin/flush
+# Expected: {"status":"flushed","buffer_remaining":0}
+
+# ============================================================
+# 36. Verify flushed data in S3
+# ============================================================
+ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 "docker exec api python3 -c \"
+from minio import Minio
+import os
+c = Minio(os.environ['S3_ENDPOINT'], os.environ['MINIO_ACCESS_KEY'], os.environ['MINIO_SECRET_KEY'], secure=True, region='')
+for obj in c.list_objects('proj09_Data', prefix='zulip-raw-messages/cleaned/', recursive=True):
+    print(f'{obj.object_name} ({obj.size/1024:.1f} KB)')
+\""
+
+# ============================================================
+# 37. Labeling dashboard (browser)
+# ============================================================
+# Open: http://129.114.26.207:8000/dashboard
+# Shows unlabeled messages, lets you mark is_toxicity/is_suicide
+
+# ============================================================
+# 38. Run incremental training data compilation
+# ============================================================
+ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 \
+  "docker exec api python3 -c \"import logging; logging.basicConfig(level=logging.INFO); from src.data.compile_training_data import compile_incremental; compile_incremental()\""
+
+# ============================================================
+# 39. Verify PostgreSQL table schemas
+# ============================================================
+ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 \
+  "docker exec postgres psql -U user -d chatsentry -c \"SELECT table_name, column_name, data_type FROM information_schema.columns WHERE table_schema='public' ORDER BY table_name, ordinal_position;\""
+
+# ============================================================
+# 40. Verify training data column types in S3
+# ============================================================
+ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 "docker exec api python3 -c \"
+import pandas as pd, io
+from minio import Minio
+import os
+c = Minio(os.environ['S3_ENDPOINT'], os.environ['MINIO_ACCESS_KEY'], os.environ['MINIO_SECRET_KEY'], secure=True, region='')
+obj = c.get_object('proj09_Data', 'zulip-training-data/v20260406-225153/train.csv')
+df = pd.read_csv(io.BytesIO(obj.read()), nrows=3)
+obj.close()
+print('Columns:', list(df.columns))
+print('Dtypes:', dict(df.dtypes))
+print(df.head(2).to_string())
+\""
+
+# ============================================================
+# 41. Check S3 bucket total size
+# ============================================================
+ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 "docker exec api python3 -c \"
+from minio import Minio
+import os
+c = Minio(os.environ['S3_ENDPOINT'], os.environ['MINIO_ACCESS_KEY'], os.environ['MINIO_SECRET_KEY'], secure=True, region='')
+total = 0
+for obj in c.list_objects('proj09_Data', recursive=True):
+    total += obj.size
+print(f'Total: {total/1024/1024:.1f} MB ({total/1024/1024/1024:.2f} GB)')
+\""
+
+# ============================================================
+# 42. Check Qwen model cache in container
+# ============================================================
+ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 \
+  "docker exec api du -sh /root/.cache/huggingface/hub/models--Qwen--Qwen2.5-1.5B/ 2>/dev/null"
+
+# ============================================================
+# 43. Rebuild API container (after requirements.txt changes)
+# ============================================================
+ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 \
+  "cd /home/cc/chatsentry && git pull && cd docker && docker compose down && docker compose build api && docker compose up -d"
