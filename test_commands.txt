@@ -182,11 +182,11 @@ ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 \
 # Open: http://129.114.26.207:8080
 
 # ============================================================
-# 22. Fix HF_TOKEN in .env and restart containers
+# 22. Update .env and restart containers
 # ============================================================
 ssh -i ~/.ssh/id_rsa_chameleon cc@129.114.26.207 \
   "cd /home/cc/chatsentry/docker && \
-   printf 'HF_TOKEN=hf_REAL_TOKEN_HERE\nS3_ACCESS_KEY=KEY\nS3_SECRET_KEY=SECRET\nS3_ENDPOINT=chi.tacc.chameleoncloud.org:7480\n' > .env && \
+   printf 'S3_ACCESS_KEY=KEY\nS3_SECRET_KEY=SECRET\nS3_ENDPOINT=chi.tacc.chameleoncloud.org:7480\n' > .env && \
    docker compose down && docker compose up -d"
 
 # ============================================================

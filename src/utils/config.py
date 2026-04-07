@@ -74,7 +74,6 @@ def _env_kwargs() -> dict:
             "S3_ENDPOINT", "chi.tacc.chameleoncloud.org:7480"
         ),
         "S3_SECURE": os.environ.get("S3_SECURE", "true").lower() == "true",
-        "HF_TOKEN": os.environ.get("HF_TOKEN", ""),
     }
 
 
@@ -88,7 +87,6 @@ class Config:
     MINIO_SECURE: bool = False
     S3_ENDPOINT: str = "chi.tacc.chameleoncloud.org:7480"
     S3_SECURE: bool = True
-    HF_TOKEN: str = ""
 
     # --- Pipeline tunables (from YAML, per D-07) ---
     BUCKET_RAW: str = "proj09_Data"
