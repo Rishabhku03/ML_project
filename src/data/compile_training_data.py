@@ -118,6 +118,11 @@ def select_output_columns(df: pd.DataFrame) -> pd.DataFrame:
         df = df.copy()
         df["source"] = "real"
 
+    # Normalize label types: always 0/1 integers (PostgreSQL returns bools)
+    df = df.copy()
+    df["is_suicide"] = df["is_suicide"].astype(int)
+    df["is_toxicity"] = df["is_toxicity"].astype(int)
+
     output_cols = ["cleaned_text", "is_suicide", "is_toxicity", "source", "message_id"]
     return df[output_cols]
 
@@ -255,21 +260,31 @@ def compile_initial() -> None:
     client = get_minio_client()
     cleaner = TextCleaner()
 
-    # Read CSV chunks from MinIO
-    logger.info("Reading CSV chunks from S3 zulip-raw-messages/real/combined_dataset/")
-    objects = client.list_objects(
-        config.BUCKET_RAW,
-        prefix="zulip-raw-messages/real/combined_dataset/",
-        recursive=True,
-    )
+    # Read CSV chunks from S3 (real + synthetic)
+    client = get_minio_client()
+    cleaner = TextCleaner()
 
     chunks = []
-    for obj in objects:
-        response = client.get_object(config.BUCKET_RAW, obj.object_name)
-        chunk_df = pd.read_csv(io.BytesIO(response.read()))
-        chunks.append(chunk_df)
-        response.close()
-        response.release_conn()
+    for prefix, source_tag in [
+        ("zulip-raw-messages/real/combined_dataset/", "real"),
+        ("zulip-raw-messages/synthetic/", "synthetic_local"),
+    ]:
+        logger.info("Reading CSV from S3 %s", prefix)
+        objects = client.list_objects(
+            config.BUCKET_RAW,
+            prefix=prefix,
+            recursive=True,
+        )
+        for obj in objects:
+            if not obj.object_name.endswith(".csv"):
+                continue
+            response = client.get_object(config.BUCKET_RAW, obj.object_name)
+            chunk_df = pd.read_csv(io.BytesIO(response.read()))
+            if "source" not in chunk_df.columns:
+                chunk_df["source"] = source_tag
+            chunks.append(chunk_df)
+            response.close()
+            response.release_conn()
 
     df = pd.concat(chunks, ignore_index=True)
     logger.info("Loaded %d rows from MinIO CSV chunks", len(df))
