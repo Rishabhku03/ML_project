@@ -205,7 +205,10 @@ def _generate_data_docs_html(result, suite: ExpectationSuite) -> str:
         detail = ""
         if not exp_result.success:
             unexpected = exp_result.result.get("unexpected_percent", "")
-            detail = f" — {unexpected:.2f}% of rows failed this check"
+            if isinstance(unexpected, (int, float)):
+                detail = f" — {unexpected:.2f}% of rows failed"
+            elif unexpected:
+                detail = f" — {unexpected}"
 
         rows.append(
             f'<tr class="{status_class}">'
