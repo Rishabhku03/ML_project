@@ -66,8 +66,13 @@ app.include_router(dashboard.router)
 
 
 def _get_default_user(cur) -> str:
-    """Get the default seed user ID."""
+    """Get a default user ID."""
     cur.execute("SELECT id FROM users WHERE username = 'test_user' LIMIT 1")
+    row = cur.fetchone()
+    if row:
+        return row[0]
+    # Fallback to any available user
+    cur.execute("SELECT id FROM users LIMIT 1")
     row = cur.fetchone()
     if row:
         return row[0]
