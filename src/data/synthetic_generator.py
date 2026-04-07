@@ -20,6 +20,7 @@ import json
 import logging
 import random
 import time
+from pathlib import Path
 from typing import Optional
 
 import requests
@@ -45,10 +46,58 @@ _model = None
 _tokenizer = None
 
 
+def _restore_model_from_s3() -> bool:
+    """Download model from S3 if local cache is empty.
+
+    Returns:
+        True if model was downloaded or already cached.
+    """
+    cache_dir = Path.home() / ".cache/huggingface/hub"
+    model_dir = cache_dir / "models--Qwen--Qwen2.5-1.5B"
+
+    if model_dir.exists() and any(model_dir.rglob("*.safetensors")):
+        logger.info("Model already cached locally")
+        return True
+
+    logger.info("Model not in cache, downloading from S3...")
+    try:
+        minio = get_minio_client()
+        objects = list(
+            minio.list_objects(
+                config.BUCKET_RAW, prefix="models/Qwen2.5-1.5B/", recursive=True
+            )
+        )
+        if not objects:
+            logger.warning("No model in S3, will download from HuggingFace")
+            return False
+
+        for obj in objects:
+            rel_path = obj.object_name.replace("models/Qwen2.5-1.5B/", "")
+            local_path = cache_dir / "models--Qwen--Qwen2.5-1.5B" / rel_path
+            local_path.parent.mkdir(parents=True, exist_ok=True)
+
+            if local_path.exists() and local_path.stat().st_size == obj.size:
+                continue  # Already downloaded
+
+            response = minio.get_object(config.BUCKET_RAW, obj.object_name)
+            with open(local_path, "wb") as f:
+                for chunk in response.stream(32 * 1024):
+                    f.write(chunk)
+            response.close()
+            logger.info("  Downloaded: %s", rel_path)
+
+        logger.info("Model restored from S3")
+        return True
+    except Exception as e:
+        logger.warning("S3 download failed: %s, will use HuggingFace", e)
+        return False
+
+
 def _load_model() -> tuple:
     """Load Qwen2.5-1.5B model and tokenizer (cached)."""
     global _model, _tokenizer
     if _model is None:
+        _restore_model_from_s3()
         logger.info("Loading %s...", MODEL_ID)
         _tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
         _model = AutoModelForCausalLM.from_pretrained(
