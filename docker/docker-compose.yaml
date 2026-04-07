@@ -35,6 +35,8 @@ services:
         condition: service_healthy
     ports:
       - "8000:8000"
+    volumes:
+      - hf_cache:/root/.cache/huggingface
     environment:
       - DATABASE_URL=postgresql://user:chatsentry_pg@postgres:5432/chatsentry
       - S3_ENDPOINT=${S3_ENDPOINT:-chi.tacc.chameleoncloud.org:7480}
@@ -58,3 +60,4 @@ services:
 
 volumes:
   postgres_data:
+  hf_cache:
