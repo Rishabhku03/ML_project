@@ -14,6 +14,8 @@ dependencies = [
     "ftfy>=6.3.1",
     "emoji>=2.15.0",
     "markdownify>=1.2.2",
+    "scikit-learn>=1.8.0",  # stratified train/test/validation split
+    "great-expectations>=1.15.2",  # data quality validation framework
 ]
 
 [project.optional-dependencies]
@@ -30,3 +32,10 @@ select = ["E", "F", "I"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v"
+markers = [
+    "infrastructure: Layer 1 — Docker service health and connectivity tests",
+    "data_flow: Layer 2 — Pipeline stage data flow tests",
+    "data_quality: Layer 3 — GE validation and quality gate tests",
+    "chaos: Layer 4 — Failure injection and resilience tests",
+    "full_pipeline: Layer 5 — Complete end-to-end pipeline tests",
+]

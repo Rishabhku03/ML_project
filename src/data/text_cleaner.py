@@ -13,12 +13,16 @@ Execution order (D-06):
 
 import logging
 import re
+import warnings
 from dataclasses import dataclass, field
 from typing import Callable
 
 import emoji
 import ftfy
+from bs4 import MarkupResemblesLocatorWarning
 from markdownify import markdownify
+
+warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
 
 logger = logging.getLogger(__name__)
 

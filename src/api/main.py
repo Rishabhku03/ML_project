@@ -11,7 +11,7 @@ from src.utils.config import config
 from src.utils.db import get_db_connection
 from src.utils.minio_client import get_minio_client
 
-from .routes import flags, messages
+from .routes import dashboard, flags, messages
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -26,8 +26,6 @@ app = FastAPI(title="ChatSentry API", version="0.1.0")
 @app.middleware("http")
 async def text_cleaning_middleware(request, call_next):
     """Clean text on POST /messages and POST /flags, persist to DB."""
-    from starlette.requests import Request as _Req
-
     if request.method != "POST" or request.url.path not in ("/messages", "/flags"):
         return await call_next(request)
 
@@ -64,11 +62,17 @@ async def text_cleaning_middleware(request, call_next):
 
 app.include_router(messages.router)
 app.include_router(flags.router)
+app.include_router(dashboard.router)
 
 
 def _get_default_user(cur) -> str:
-    """Get the default seed user ID."""
+    """Get a default user ID."""
     cur.execute("SELECT id FROM users WHERE username = 'test_user' LIMIT 1")
+    row = cur.fetchone()
+    if row:
+        return row[0]
+    # Fallback to any available user
+    cur.execute("SELECT id FROM users LIMIT 1")
     row = cur.fetchone()
     if row:
         return row[0]
@@ -185,7 +189,7 @@ def _flush_to_minio() -> None:
         client = get_minio_client()
         lines = "\n".join(json.dumps(row) for row in _minio_buffer)
         data = lines.encode("utf-8")
-        object_name = f"cleaned/batch-{uuid.uuid4()}.jsonl"
+        object_name = f"zulip-raw-messages/cleaned/batch-{uuid.uuid4()}.jsonl"
 
         client.put_object(
             bucket_name=config.BUCKET_RAW,
@@ -203,6 +207,17 @@ def _flush_to_minio() -> None:
         _minio_buffer.clear()
     except Exception:
         logger.exception("Failed to flush cleaned data to MinIO")
+
+
+@app.get("/", include_in_schema=False)
+async def root():
+    return {
+        "service": "ChatSentry API",
+        "version": "0.1.0",
+        "docs": "/docs",
+        "health": "/health",
+        "dashboard": "/dashboard",
+    }
 
 
 @app.get("/health")

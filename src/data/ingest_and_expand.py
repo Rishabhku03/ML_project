@@ -18,7 +18,7 @@ from src.utils.minio_client import get_minio_client
 
 logger = logging.getLogger(__name__)
 
-CHUNK_SIZE = 50_000  # D-06
+CHUNK_SIZE = config.CHUNK_SIZE  # From pipeline.yaml (D-04, D-07)
 CSV_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "combined_dataset.csv")
 
 
@@ -55,7 +55,7 @@ def ingest_csv(csv_path: str = CSV_PATH, bucket: str = config.BUCKET_RAW) -> int
     chunk_count = 0
     for i, chunk in enumerate(chunk_iter):
         csv_bytes = chunk.to_csv(index=False).encode("utf-8")
-        object_name = f"real/combined_dataset/chunk_{i:03d}.csv"
+        object_name = f"zulip-raw-messages/real/combined_dataset/chunk_{i:03d}.csv"
 
         client.put_object(
             bucket_name=bucket,
